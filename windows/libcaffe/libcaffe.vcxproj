@@ -216,6 +216,7 @@
     <ClInclude Include="..\..\include\caffe\layers\batch_reindex_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\bias_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\bnll_layer.hpp" />
+    <ClInclude Include="..\..\include\caffe\layers\box_data_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\concat_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\contrastive_loss_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\conv_layer.hpp" />
@@ -230,12 +231,14 @@
     <ClInclude Include="..\..\include\caffe\layers\cudnn_tanh_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\data_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\deconv_layer.hpp" />
+    <ClInclude Include="..\..\include\caffe\layers\detection_loss_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\dropout_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\dummy_data_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\eltwise_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\elu_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\embed_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\euclidean_loss_layer.hpp" />
+    <ClInclude Include="..\..\include\caffe\layers\eval_detection_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\exp_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\filter_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\flatten_layer.hpp" />
