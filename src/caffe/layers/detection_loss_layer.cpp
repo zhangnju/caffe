@@ -1,4 +1,4 @@
-#include <algorithm>
+﻿#include <algorithm>
 #include <cfloat>
 #include <vector>
 #include <cmath>
@@ -53,7 +53,8 @@ void DetectionLossLayer<Dtype>::LayerSetUp(
   // outputs: classes, iou, coordinates
   int tmp_input_count = side_ * side_ * (num_class_ + (1 + 4) * num_object_);
   // label: isobj, class_label, coordinates
-  int tmp_label_count = side_ * side_ * (1 + 1 + 1 + 4);
+  //int tmp_label_count = side_ * side_ * (1 + 1 + 1 + 4);？
+  int tmp_label_count = side_ * side_ * (1 + 1 + 4);
   CHECK_EQ(input_count, tmp_input_count);
   CHECK_EQ(label_count, tmp_label_count);
 }
@@ -83,7 +84,8 @@ void DetectionLossLayer<Dtype>::Forward_cpu(
       for (int k = 0; k < num_object_; ++k) {
         int p_index = index + num_class_ * locations + k * locations + j;
         noobj_loss += noobject_scale_ * pow(input_data[p_index] - 0, 2);
-        diff[p_index] = noobject_scale_ * (input_data[p_index] - 0);
+        //diff[p_index] = noobject_scale_ * (input_data[p_index] - 0);
+		diff[p_index] = noobject_scale_ * (0 - input_data[p_index]);
         avg_no_obj += input_data[p_index];
       }
       bool isobj = label_data[true_index + locations + j];
