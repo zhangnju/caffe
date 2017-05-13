@@ -153,6 +153,7 @@
     <ClCompile Include="..\..\src\caffe\layers\prelu_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\psroi_pooling_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\reduction_layer.cpp" />
+    <ClCompile Include="..\..\src\caffe\layers\region_loss_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\relu_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\reshape_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\scale_layer.cpp" />
@@ -195,6 +196,7 @@
     <ClCompile Include="..\..\src\caffe\util\io.cpp" />
     <ClCompile Include="..\..\src\caffe\util\math_functions.cpp" />
     <ClCompile Include="..\..\src\caffe\util\signal_handler.cpp" />
+    <ClCompile Include="..\..\src\caffe\util\tree.cpp" />
     <ClCompile Include="..\..\src\caffe\util\upgrade_proto.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -262,6 +264,7 @@
     <ClInclude Include="..\..\include\caffe\layers\psroi_pooling_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\python_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\reduction_layer.hpp" />
+    <ClInclude Include="..\..\include\caffe\layers\region_loss_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\relu_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\reshape_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\scale_layer.hpp" />
@@ -301,6 +304,7 @@
     <ClInclude Include="..\..\include\caffe\util\mkl_alternate.hpp" />
     <ClInclude Include="..\..\include\caffe\util\rng.hpp" />
     <ClInclude Include="..\..\include\caffe\util\signal_handler.h" />
+    <ClInclude Include="..\..\include\caffe\util\tree.hpp" />
     <ClInclude Include="..\..\include\caffe\util\upgrade_proto.hpp" />
   </ItemGroup>
   <ItemGroup Condition="'$(CpuOnlyBuild)'=='false'">

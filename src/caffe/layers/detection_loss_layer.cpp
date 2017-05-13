@@ -42,7 +42,7 @@ void DetectionLossLayer<Dtype>::LayerSetUp(
   num_class_ = param.num_class();
   num_object_ = param.num_object();
   sqrt_ = param.sqrt();
-  resocre_ = param.rescore();
+  rescore_ = param.rescore();
   object_scale_ = param.object_scale();
   noobject_scale_ = param.noobject_scale();
   class_scale_ = param.class_scale();
