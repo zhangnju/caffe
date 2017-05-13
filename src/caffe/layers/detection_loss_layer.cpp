@@ -42,7 +42,7 @@ void DetectionLossLayer<Dtype>::LayerSetUp(
   num_class_ = param.num_class();
   num_object_ = param.num_object();
   sqrt_ = param.sqrt();
-  constriant_ = param.constriant();
+  resocre_ = param.rescore();
   object_scale_ = param.object_scale();
   noobject_scale_ = param.noobject_scale();
   class_scale_ = param.class_scale();
@@ -98,7 +98,6 @@ void DetectionLossLayer<Dtype>::Forward_cpu(
       //CHECK_LT(label, num_class_) << "label must below num_class";
       for (int c = 0; c < num_class_; ++c) {
         int class_index = index + j * num_class_ + c;
-		int label = static_cast<int>();
         //Dtype target = Dtype(c == label);
         avg_cls += input_data[class_index];
 		if (label_data[true_index + 1 + c])
@@ -108,7 +107,7 @@ void DetectionLossLayer<Dtype>::Forward_cpu(
       }
       const Dtype* true_box_pt = label_data + true_index + 1 + num_class_;
       vector<Dtype> true_box(true_box_pt, true_box_pt + 4);
-      const Dtype* box_pt = input_data + index + (num_class_+num_object_)*locations+ num_object*4*j;
+      const Dtype* box_pt = input_data + index + (num_class_+num_object_)*locations+ num_object_*4*j;
       Dtype best_iou = 0.;
       Dtype best_rmse = 20.;
       int best_index = 0;
