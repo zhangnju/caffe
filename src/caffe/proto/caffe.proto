@@ -1,4 +1,4 @@
-﻿syntax = "proto2";
+syntax = "proto2";
 
 package caffe;
 
@@ -354,8 +354,7 @@ message LayerParameter {
 
   // Yolo detection loss layer
   optional DetectionLossParameter detection_loss_param = 200;
-  // Yolo detection evaluation layer
-  optional EvalDetectionParameter eval_detection_param = 201;
+  
 
   // Layer type-specific parameters.
   //
@@ -597,7 +596,7 @@ message ConvolutionParameter {
   repeated uint32 stride = 6; // The stride; defaults to 1
   // Factor used to dilate the kernel, (implicitly) zero-filling the resulting
   // holes. (Kernel dilation is sometimes referred to by its use in the
-  // algorithme à trous from Holschneider et al. 1987.)
+  // algorithme � trous from Holschneider et al. 1987.)
   repeated uint32 dilation = 18; // The dilation; defaults to 1
 
   // For 2D convolution only, the *_h and *_w versions may also be used to
@@ -1393,7 +1392,6 @@ message V1LayerParameter {
   optional TransformationParameter transform_param = 36;
   optional LossParameter loss_param = 42;
   optional DetectionLossParameter detection_loss_param = 200;
-  optional EvalDetectionParameter eval_detection_param = 201;
   optional V0LayerParameter layer = 1;
 }
 
