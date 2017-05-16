@@ -65,7 +65,8 @@ class RegionLossLayer : public LossLayer<Dtype> {
   // virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
   //     const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
   
-  int side_;
+  int height_;
+  int width_;
   int bias_match_;
   int num_class_;
   int coords_;
@@ -92,6 +93,13 @@ class RegionLossLayer : public LossLayer<Dtype> {
 
   //string class_map_;
   //map<int, int> cls_map_;
+
+  inline entry_index(int batch, int location, int entry)
+  {
+	  int n = location / (width_*height_);
+	  int loc = location % (width_*height_);
+	  return batch*(height_*width_*num_*(num_class_ + coords_ + 1)) + num_*width_*height_*(coords_ + num_class_ + 1) + entry*width_*height_ + loc;
+  }
 };
 
 }  // namespace caffe

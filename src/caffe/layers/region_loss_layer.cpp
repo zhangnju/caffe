@@ -55,108 +55,72 @@ void disp(Blob<Dtype>& swap)
 }
 
 template <typename Dtype>
-Dtype softmax_region(Dtype* input, int classes)
+Dtype softmax(Dtype* input, int classes, int stride)
 {
   Dtype sum = 0;
   Dtype large = input[0];
   for (int i = 0; i < classes; ++i){
-    if (input[i] > large)
-      large = input[i];
+    if (input[i*stride] > large)
+      large = input[i*stride];
   }
   for (int i = 0; i < classes; ++i){
-    Dtype e = exp(input[i] - large);
+    Dtype e = exp(input[i*stride] - large);
     sum += e;
-    input[i] = e;
+    input[i*stride] = e;
   }
   for (int i = 0; i < classes; ++i){
-    input[i] = input[i] / sum;
+    input[i*stride] = input[i*stride] / sum;
   }
   return 0;
 }
-
 template <typename Dtype>
-void softmax_tree(Dtype* input, tree *t)
+inline void softmax_cpu(Dtype *input, int n, int batch, int batch_offset, int groups, int group_offset, int stride)
 {
-  int count = 0;
-  for (int i = 0; i < t->groups; ++i){ //1
-    int group_size = t->group_size[i]; //20
-    softmax_region(input + count, group_size);
-    count += group_size; 
-  }
+	for (int b = 0; b < batch; ++b){
+		for (int g = 0; g < groups; ++g){
+			softmax(input + b*batch_offset + g*group_offset, n, stride);
+		}
+	}
 }
 
 template <typename Dtype>
-vector<Dtype> get_region_box(Dtype* x, vector<Dtype> biases, int n, int index, int i, int j, int w, int h){
+vector<Dtype> get_region_box(Dtype* x, vector<Dtype> biases, int n, int index, int i, int j, int w, int h , int stride){
   vector<Dtype> b;
-  b.clear();
-  b.push_back((i + sigmoid(x[index + 0])) / w);
-  b.push_back((j + sigmoid(x[index + 1])) / h);
-  b.push_back(exp(x[index + 2]) * biases[2*n] / w);
-  b.push_back(exp(x[index + 3]) * biases[2*n+1] / h);
+  b.push_back((i + x[index + 0*stride]) / w);
+  b.push_back((j + x[index + 1*stride]) / h);
+  b.push_back(exp(x[index + 2*stride]) * biases[2*n] / w);
+  b.push_back(exp(x[index + 3*stride]) * biases[2*n+1] / h);
   return b;
 }
 
 template <typename Dtype>
-Dtype delta_region_box(vector<Dtype> truth, Dtype* x, vector<Dtype> biases, int n, int index, int i, int j, int w, int h, Dtype* delta, float scale){
+Dtype delta_region_box(vector<Dtype> truth, Dtype* x, vector<Dtype> biases, int n, int index, int i, int j, int w, int h, Dtype* delta, float scale, int stride){
   vector<Dtype> pred;
-  pred.clear();
-  pred = get_region_box(x, biases, n, index, i, j, w, h);
+  pred = get_region_box(x, biases, n, index, i, j, w, h,stride);
         
   float iou = Calc_iou(pred, truth);
-  //LOG(INFO) << pred[0] << "," << pred[1] << "," << pred[2] << "," << pred[3] << ";"<< truth[0] << "," << truth[1] << "," << truth[2] << "," << truth[3];
+  
   float tx = truth[0] * w - i; //0.5
   float ty = truth[1] * h - j; //0.5
   float tw = log(truth[2] * w / biases[2*n]); //truth[2]=biases/w tw = 0
   float th = log(truth[3] * h / biases[2*n + 1]); //th = 0
 	
-  delta[index + 0] =(-1) * scale * (tx - sigmoid(x[index + 0])) * sigmoid(x[index + 0]) * (1 - sigmoid(x[index + 0]));
-  delta[index + 1] =(-1) * scale * (ty - sigmoid(x[index + 1])) * sigmoid(x[index + 1]) * (1 - sigmoid(x[index + 1]));
-  delta[index + 2] =(-1) * scale * (tw - x[index + 2]);
-  delta[index + 3] =(-1) * scale * (th - x[index + 3]);
+  delta[index + 0*stride] = scale * (tx - x[index + 0*stride]);
+  delta[index + 1*stride] = scale * (ty - x[index + 1*stride]);
+  delta[index + 2*stride] = scale * (tw - x[index + 2*stride]);
+  delta[index + 3*stride] = scale * (th - x[index + 3*stride]);
   return iou;
 }
 
 template <typename Dtype>
-void delta_region_class(Dtype* input_data, Dtype* &diff, int index, int class_label, int classes, string softmax_tree, tree *t, float scale, Dtype* avg_cat)
+void delta_region_class(Dtype* input_data, Dtype* diff, int index, int class_label, int classes, string softmax_tree, tree *t, float scale, int stride, Dtype* avg_cat)
 {
-  if (softmax_tree != ""){
-    float pred = 1;
-    while (class_label >= 0)
-    {
-      pred *= input_data[index + class_label];
-      //LOG(INFO) << "class_label: " << class_label << " p: " << pred; 
-      int g = t->group[class_label];
-      int offset = t->group_offset[g];
-      //LOG(INFO) << "class_label: " << class_label << " p: " << pred << " offset: " << offset; 
-      for (int i = 0; i < t->group_size[g]; ++ i){
-        diff[index + offset + i] = (-1.0) * scale * (0 - input_data[index + offset + i]);
-      }
-      diff[index + class_label] = (-1.0) * scale * (1 - input_data[index + class_label]);
-      class_label = t->parent[class_label];
-    }
-    *avg_cat += pred;
-    //LOG(INFO) << " ";
-  } else{
     for (int n = 0; n < classes; ++n){
-      diff[index + n] = (-1.0) * scale * (((n == class_label)?1 : 0) - input_data[index + n]);
-      //std::cout<<diff[index+n]<<",";
+      diff[index + stride*n] = scale * (((n == class_label)?1 : 0) - input_data[index + stride*n]);
       if (n == class_label){
-        *avg_cat += input_data[index + n];
-        //std::cout<<"avg_cat:"<<input_data[index+n]<<std::endl; 
+        *avg_cat += input_data[index + stride*n];
       }
     }
-  }
-}
-
-template <typename Dtype>
-Dtype get_hierarchy_prob(Dtype* input_data, tree *t, int c)
-{
-  float p = 1;
-  while(c >= 0){
-    p = p * input_data[c];
-    c = t->parent[c];
-  }
-  return p;
 }
 
 template <typename Dtype>
@@ -166,7 +130,8 @@ void RegionLossLayer<Dtype>::LayerSetUp(
   
   RegionLossParameter param = this->layer_param_.region_loss_param();
   
-  side_ = param.side(); //13
+  height_ = param.side(); //13
+  width_ =  param.side(); //13
   bias_match_ = param.bias_match(); //
   num_class_ = param.num_class(); //20
   coords_ = param.coords(); //4
@@ -192,7 +157,7 @@ void RegionLossLayer<Dtype>::LayerSetUp(
   int input_count = bottom[0]->count(1); //h*w*n*(classes+coords+1) = 13*13*5*(20+4+1)
   int label_count = bottom[1]->count(1); //30*5
   // outputs: classes, iou, coordinates
-  int tmp_input_count = side_ * side_ * num_ * (coords_ + num_class_ + 1); //13*13*5*(20+4+1) label: isobj, class_label, coordinates
+  int tmp_input_count = side_ * side_ * num_ * (coords_ + num_class_ + 1); //13*13*5*(20+4+1)
   int tmp_label_count = 30 * num_;
   CHECK_EQ(input_count, tmp_input_count);
   CHECK_EQ(label_count, tmp_label_count);
@@ -210,45 +175,38 @@ void RegionLossLayer<Dtype>::Reshape(
 template <typename Dtype>
 void RegionLossLayer<Dtype>::Forward_cpu(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
-    //const Dtype* input_data = bottom[0]->cpu_data();
-    //std::cout<<"1"<<std::endl;
+    const Dtype* input_data = bottom[0]->cpu_data();
     const Dtype* label_data = bottom[1]->cpu_data(); //[label,x,y,w,h]
-    //std::cout<<"2"<<std::endl;
     Dtype* diff = diff_.mutable_cpu_data();
     caffe_set(diff_.count(), Dtype(0.0), diff);
-    //std::cout<<"3"<<std::endl;
     Dtype avg_anyobj(0.0), avg_obj(0.0), avg_iou(0.0), avg_cat(0.0), recall(0.0), loss(0.0);
     int count = 0;
     int class_count = 0;
-    //*********************************************************Reshape********************************************************//
-    Blob<Dtype> swap;
-    swap.Reshape(bottom[0]->num(), bottom[0]->height()*bottom[0]->width(), num_, bottom[0]->channels() / num_);
-    //std::cout<<"4"<<std::endl;  
-
-    Dtype* swap_data = swap.mutable_cpu_data();
-    int index = 0;
-    for (int b = 0; b < bottom[0]->num(); ++b)
-      for (int h = 0; h < bottom[0]->height(); ++h)
-	for (int w = 0; w < bottom[0]->width(); ++w)
-	  for (int c = 0; c < bottom[0]->channels(); ++c)
-	  {
-	    swap_data[index++] = bottom[0]->data_at(b,c,h,w);	
-	  }
     
-    //CHECK_EQ(bottom[0]->data_at(0,4,1,2),swap.data_at(0,15,0,4));
-    //std::cout<<"5"<<std::endl;
-    //*********************************************************Activation********************************************************//
-    //disp(swap);
-    
-    for (int b = 0; b < swap.num(); ++b)
-      for (int c = 0; c < swap.channels(); ++c)
-   	for (int h = 0; h < swap.height(); ++h)
+	for (int b = 0; b < batch_; b++)
 	{
-	  int index = b * swap.channels() * swap.height() * swap.width() + c * swap.height() * swap.width() + h * swap.width() + 4;
-	  swap_data[index] = sigmoid(swap_data[index]);
-	  
-	  CHECK_GE(swap_data[index], 0);
+		for (int n = 0; n < num_; n++)
+		{
+			int index = entry_index(b, n*width_*height_, 0);
+			for (int k = 0; k < 2 * width_*height_; k++)
+			{
+				input_data[index]=sigmoid(input_data[index]);
+			}
+			index = entry_index(b, n*width_*height_, 4);
+			for (int k = 0; k < width_*height_; k++)
+			{
+				input_data[index] = sigmoid(input_data[index]);
+			}
+		}
 	}
+
+	if (softmax_)
+	{
+		int index = entry_index(l, 0, 0, 5);
+		softmax_cpu(input_data + index, num_class_, batch_*num_, height_*width_*(num_class_ + coords_ + 1), width_*height_, width_*height_,1);
+	}
+	
+
    
    //std::cout<<"6"<<std::endl;
    if (softmax_tree_ != ""){
