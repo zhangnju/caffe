@@ -172,34 +172,9 @@ void RegionLossLayer<Dtype>::LayerSetUp(
   coords_ = param.coords(); //4
   num_ = param.num(); //5
   softmax_ = param.softmax(); //
-  softmax_tree_ = param.softmax_tree(); //string
-  if (softmax_tree_ != "")
-    t_ = tree(softmax_tree_);
-  
-  class_map_ = param.class_map();
-  if (class_map_ != ""){
-    string line;
-    std::fstream fin(class_map_.c_str());
-    if (!fin){
-      LOG(INFO) << "no map file";
-    }
-    
-    int index = 0;
-    int id = 0;
-    while (getline(fin, line)){
-      stringstream ss;
-      ss << line;
-      ss >> id;
-      
-      cls_map_[index] = id;
-      index ++;
-    }
-    fin.close();
-  }  
-
-  //LOG(INFO) << "t_.groups: " << t_.groups;
-  //jitter_ = param.jitter(); 
-  //rescore_ = param.rescore();
+  batch_ = 1;//check me 
+  jitter_ = param.jitter(); 
+  rescore_ = param.rescore();
   
   object_scale_ = param.object_scale(); //5.0
   noobject_scale_ = param.noobject_scale(); //1.0
