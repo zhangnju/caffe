@@ -172,12 +172,12 @@ void RegionLossLayer<Dtype>::Forward_cpu(
 			int index = entry_index(b, n*width_*height_, 0);
 			for (int k = 0; k < 2 * width_*height_; k++)
 			{
-				input_data[index]=sigmoid(input_data[index]);
+				input_data[index+k]=sigmoid(input_data[index+k]);
 			}
 			index = entry_index(b, n*width_*height_, 4);
 			for (int k = 0; k < width_*height_; k++)
 			{
-				input_data[index] = sigmoid(input_data[index]);
+				input_data[index+k] = sigmoid(input_data[index+k]);
 			}
 		}
 	}
@@ -278,6 +278,21 @@ void RegionLossLayer<Dtype>::Forward_cpu(
 	}
 	top[0]->mutable_cpu_data()[0] = loss;
     	
+	for (int b = 0; b < batch_; ++b){
+		for (int n = 0; n < num_; ++n){
+			int index = entry_index(b, n*width_*height_, 0);
+			for (int k = 0; k < 2 * width_*height_; k++)
+			{
+				diff[index + k] *= (1 - input_data[index + k])*input_data[index + k];
+			}
+			index = entry_index(b, n*width_*height_, 4);
+			for (int k = 0; k < width_*height_; k++)
+			{
+				diff[index + k] *= (1 - input_data[index + k])*input_data[index + k];
+			}
+		}
+	}
+
     iter ++;
     LOG(INFO) << "iter: " << iter <<" loss: " << loss;
     LOG(INFO) << "avg_noobj: "<< avg_anyobj/(width_*height_*num_*bottom[0]->num()) << " avg_obj: " << avg_obj/count <<" avg_iou: " << avg_iou/count << " avg_cat: " << avg_cat/class_count << " recall: " << recall/count << " class_count: "<< class_count;
@@ -286,16 +301,14 @@ void RegionLossLayer<Dtype>::Forward_cpu(
 template <typename Dtype>
 void RegionLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
-  //LOG(INFO) <<" propagate_down: "<< propagate_down[1] << " " << propagate_down[0];
   if (propagate_down[1]) {
     LOG(FATAL) << this->type()
                << " Layer cannot backpropagate to label inputs.";
   }
   if (propagate_down[0]) {
-    const Dtype sign(1.);
-    const Dtype alpha = sign * top[0]->cpu_diff()[0] / bottom[0]->num();
-    //const Dtype alpha(1.0);
-    //LOG(INFO) << "alpha:" << alpha;
+    //const Dtype sign(1.);
+    //const Dtype alpha = sign * top[0]->cpu_diff()[0] / bottom[0]->num();
+    const Dtype alpha(1.0);
     
     caffe_cpu_axpby(
         bottom[0]->count(),
