@@ -37,30 +37,11 @@ inline Dtype sigmoid(Dtype x)
 }
 
 template <typename Dtype>
-Dtype softmax(Dtype* input, int classes, int stride)
-{
-  Dtype sum = 0;
-  Dtype large = input[0];
-  for (int i = 0; i < classes; ++i){
-    if (input[i*stride] > large)
-      large = input[i*stride];
-  }
-  for (int i = 0; i < classes; ++i){
-    Dtype e = exp(input[i*stride] - large);
-    sum += e;
-    input[i*stride] = e;
-  }
-  for (int i = 0; i < classes; ++i){
-    input[i*stride] = input[i*stride] / sum;
-  }
-  return 0;
-}
-template <typename Dtype>
 inline void softmax_cpu(Dtype *input, int n, int batch, int batch_offset, int groups, int group_offset, int stride)
 {
 	for (int b = 0; b < batch; ++b){
 		for (int g = 0; g < groups; ++g){
-			softmax(input + b*batch_offset + g*group_offset, n, stride);
+			softmax_op(input + b*batch_offset + g*group_offset, n, stride);
 		}
 	}
 }
@@ -199,10 +180,10 @@ void RegionLossLayer<Dtype>::Forward_cpu(
 					Dtype best_iou = 0;
 					for (int t = 0; t < 30; ++t){
 						vector<Dtype> truth;
+						truth.push_back(label_data[t * 5 + b * 30 * 5]);
 						truth.push_back(label_data[t * 5 + b * 30 * 5+1]);
 						truth.push_back(label_data[t * 5 + b * 30 * 5+2]);
 						truth.push_back(label_data[t * 5 + b * 30 * 5+3]);
-						truth.push_back(label_data[t * 5 + b * 30 * 5+4]);
 						if (truth[2]==0) break;
 						Dtype iou = Calc_iou(pred, truth);
 						if (iou > best_iou) {
@@ -221,11 +202,11 @@ void RegionLossLayer<Dtype>::Forward_cpu(
 
 		for (int t = 0; t < 30; ++t){
 			vector<Dtype> truth;
-			int class_label = label_data[t * 5 + b * 30 * 5 + 0];
+			int class_label = label_data[t * 5 + b * 30 * 5 + 4];
+			truth.push_back(label_data[t * 5 + b * 30 * 5]);
 			truth.push_back(label_data[t * 5 + b * 30 * 5 + 1]);
 			truth.push_back(label_data[t * 5 + b * 30 * 5 + 2]);
 			truth.push_back(label_data[t * 5 + b * 30 * 5 + 3]);
-			truth.push_back(label_data[t * 5 + b * 30 * 5 + 4]);
 			if (truth[2]==0) break;
 			float best_iou = 0;
 			int best_n = 0;

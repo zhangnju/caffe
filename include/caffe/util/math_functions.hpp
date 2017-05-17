@@ -112,6 +112,25 @@ inline int8_t caffe_sign(Dtype val) {
   return (Dtype(0) < val) - (val < Dtype(0));
 }
 
+template <typename Dtype>
+inline void softmax_op(Dtype* input, int classes, int stride)
+{
+	Dtype sum = 0;
+	Dtype large = input[0];
+	for (int i = 0; i < classes; ++i){
+		if (input[i*stride] > large)
+			large = input[i*stride];
+	}
+	for (int i = 0; i < classes; ++i){
+		Dtype e = exp(input[i*stride] - large);
+		sum += e;
+		input[i*stride] = e;
+	}
+	for (int i = 0; i < classes; ++i){
+		input[i*stride] = input[i*stride] / sum;
+	}
+}
+
 // The following two macros are modifications of DEFINE_VSL_UNARY_FUNC
 //   in include/caffe/util/mkl_alternate.hpp authored by @Rowland Depp.
 // Please refer to commit 7e8ef25c7 of the boost-eigen branch.
