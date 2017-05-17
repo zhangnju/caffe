@@ -72,7 +72,6 @@ class RegionLossLayer : public LossLayer<Dtype> {
   int coords_;
   int num_;
   int softmax_;
-  //string softmax_tree_;
   int batch_;
   float jitter_;
   int rescore_;
@@ -88,13 +87,8 @@ class RegionLossLayer : public LossLayer<Dtype> {
   vector<Dtype> biases_;
 
   Blob<Dtype> diff_;
-  Blob<Dtype> real_diff_;
-  //tree t_;
-
-  //string class_map_;
-  //map<int, int> cls_map_;
-
-  inline entry_index(int batch, int location, int entry)
+  
+  inline int entry_index(int batch, int location, int entry)
   {
 	  int n = location / (width_*height_);
 	  int loc = location % (width_*height_);
