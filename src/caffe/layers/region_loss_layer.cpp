@@ -100,7 +100,7 @@ void RegionLossLayer<Dtype>::LayerSetUp(
   coords_ = param.coords(); //4
   num_ = param.num(); //5
   softmax_ = param.softmax(); //
-  batch_ = 1;//check me 
+  batch_ = param.batch();;//check me 
   jitter_ = param.jitter(); 
   rescore_ = param.rescore();
   
@@ -252,11 +252,12 @@ void RegionLossLayer<Dtype>::Forward_cpu(
 			++class_count;
 		}
 	}
-
+	float sum = 0;
 	for (int i = 0; i < diff_.count(); ++i)
 	{
-		loss += diff[i] * diff[i];
+		sum += diff[i] * diff[i];
 	}
+	loss = sum;
 	top[0]->mutable_cpu_data()[0] = loss;
     	
 	for (int b = 0; b < batch_; ++b){

@@ -23,7 +23,7 @@ void DetectionLayer<Dtype>::LayerSetUp(
   height_ = param.side();
   coords_ = param.coords(); //4
   softmax_ = param.softmax(); //
-  batch_ = 1;//check me 
+  batch_ = param.batch();;//check me 
   num_class_ = param.num_class();
   num_object_ = param.num_object();
 

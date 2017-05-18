@@ -38,10 +38,14 @@ void DetectionLossLayer<Dtype>::LayerSetUp(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
   LossLayer<Dtype>::LayerSetUp(bottom, top);
   DetectionLossParameter param = this->layer_param_.detection_loss_param();
-  side_ = param.side();
+  width_ = param.side();
+  height_ = param.side();
   num_class_ = param.num_class();
   num_object_ = param.num_object();
   sqrt_ = param.sqrt();
+  coords_ = param.coords(); //4
+  softmax_ = param.softmax(); //
+  batch_ = param.batch();//check me 
   rescore_ = param.rescore();
   object_scale_ = param.object_scale();
   noobject_scale_ = param.noobject_scale();
@@ -51,10 +55,10 @@ void DetectionLossLayer<Dtype>::LayerSetUp(
   int input_count = bottom[0]->count(1);
   int label_count = bottom[1]->count(1);
   // outputs: classes, iou, coordinates
-  int tmp_input_count = side_ * side_ * (num_class_ + (1 + 4) * num_object_);
+  int tmp_input_count = width_ * height_ * (num_class_ + (1 + 4) * num_object_);
   // label: isobj, class_label, coordinates
   //int tmp_label_count = side_ * side_ * (1 + 1 + 1 + 4);？
-  int tmp_label_count = side_ * side_ * (1 + num_class_ + 4);
+  int tmp_label_count = width_ * height_ * (1 + num_class_ + 4);
   CHECK_EQ(input_count, tmp_input_count);
   CHECK_EQ(label_count, tmp_label_count);
 }
@@ -69,127 +73,134 @@ void DetectionLossLayer<Dtype>::Reshape(
 template <typename Dtype>
 void DetectionLossLayer<Dtype>::Forward_cpu(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
-  const Dtype* input_data = bottom[0]->cpu_data();
-  const Dtype* label_data = bottom[1]->cpu_data();
-  Dtype* diff = diff_.mutable_cpu_data();
-  Dtype loss(0.0), class_loss(0.0), noobj_loss(0.0), obj_loss(0.0), coord_loss(0.0);
-  Dtype avg_iou(0.0), avg_obj(0.0), avg_cls(0.0), avg_pos_cls(0.0), avg_no_obj(0.0);
-  Dtype obj_count(0);
-  int locations = pow(side_, 2);
-  caffe_set(diff_.count(), Dtype(0.), diff);
-  for (int i = 0; i < bottom[0]->num(); ++i) {
-    int index = i * bottom[0]->count(1);
-    for (int j = 0; j < locations; ++j) {
-		int true_index = i * bottom[1]->count(1) + j*(1 + num_class_ + 4);
-      for (int k = 0; k < num_object_; ++k) {
-		  int p_index = index + num_class_ * locations + j * num_object_ + k;
-          noobj_loss += noobject_scale_ * pow(input_data[p_index] - 0, 2);
-          //diff[p_index] = noobject_scale_ * (input_data[p_index] - 0);
-		  diff[p_index] = noobject_scale_ * (0 - input_data[p_index]);
-          avg_no_obj += input_data[p_index];
-      }
-      bool isobj = label_data[true_index];
-      if (!isobj) {
-        continue;
-      }
-      obj_count += 1;
-      //int label = static_cast<int>(label_data[true_index + locations * 2 + j]);
-      //CHECK_GE(label, 0) << "label start at 0";
-      //CHECK_LT(label, num_class_) << "label must below num_class";
-      for (int c = 0; c < num_class_; ++c) {
-        int class_index = index + j * num_class_ + c;
-        //Dtype target = Dtype(c == label);
-        avg_cls += input_data[class_index];
-		if (label_data[true_index + 1 + c])
-          avg_pos_cls += input_data[class_index]; 
-		class_loss += class_scale_ * pow(label_data[true_index + 1 + c] - input_data[class_index], 2);
-		diff[class_index] = class_scale_ * (label_data[true_index + 1 + c] - input_data[class_index]);
-      }
-      const Dtype* true_box_pt = label_data + true_index + 1 + num_class_;
-      vector<Dtype> true_box(true_box_pt, true_box_pt + 4);
-      const Dtype* box_pt = input_data + index + (num_class_+num_object_)*locations+ num_object_*4*j;
-      Dtype best_iou = 0.;
-      Dtype best_rmse = 20.;
-      int best_index = 0;
-      for (int k = 0; k < num_object_; ++k) {
-        vector<Dtype> box;
-        box.push_back(*(box_pt + k * 4 + 0));
-        box.push_back(*(box_pt + k * 4 + 1));
-        box.push_back(*(box_pt + k * 4 + 2));
-        box.push_back(*(box_pt + k * 4 + 3));
-       
-        box[0] = box[0] / side_;
-        box[1] = box[1] / side_;
-        if (sqrt_) {
-          box[2] = pow(box[2], 2);
-          box[3] = pow(box[3], 2);
-        }
-        Dtype iou = Calc_iou(box, true_box);
-        Dtype rmse = Calc_rmse(box, true_box);
-        if (best_iou > 0 || iou > 0) {
-          if (iou > best_iou) {
-            best_iou = iou;
-            best_index = k;
-          }
-        } else {
-          if (rmse < best_rmse) {
-            best_rmse = rmse;
-            best_index = k;
-          }
-        }
-      }
 
-      CHECK_GE(best_index, 0) << "best_index must >= 0";
-      avg_iou += best_iou;
-      int p_index = index + num_class_ * locations + j*num_object_ + best_index;
-      noobj_loss -= noobject_scale_ * pow(input_data[p_index], 2);
-      obj_loss += object_scale_ * pow(input_data[p_index] - 1., 2);
-      avg_no_obj -= input_data[p_index];
-      avg_obj += input_data[p_index];
-	  diff[p_index] = object_scale_ * (1.0 - input_data[p_index]);
-      // rescore
-	  if (rescore_)
-         diff[p_index] = object_scale_ * (best_iou - input_data[p_index]);
-      int box_index = index + (num_class_ + num_object_ ) * locations + (j*num_object_+best_index)*4;
-      vector<Dtype> best_box;
-      best_box.push_back(input_data[box_index + 0 ]);
-      best_box.push_back(input_data[box_index + 1 ]);
-      best_box.push_back(input_data[box_index + 2 ]);
-      best_box.push_back(input_data[box_index + 3 ]);
-	 
-      for (int o = 0; o < 4; ++o) {
-        diff[box_index + o ] = coord_scale_ * (true_box[o] - best_box[o]);
-      }
-	  if (sqrt_) {
-		  diff[box_index + 2] = coord_scale_ * (sqrt(true_box[2]) - best_box[2]);
-		  diff[box_index + 3] = coord_scale_ * (sqrt(true_box[3]) - best_box[3]);
-	  }
-      coord_loss += coord_scale_ * pow(best_box[0] - true_box[0], 2);
-      coord_loss += coord_scale_ * pow(best_box[1] - true_box[1], 2);
-	  coord_loss += coord_scale_ * pow(best_box[2] - true_box[2], 2);
-	  coord_loss += coord_scale_ * pow(best_box[3] - true_box[3], 2);
+    Dtype* input_data = bottom[0]->mutable_cpu_data();
+    const Dtype* label_data = bottom[1]->cpu_data();
+    Dtype* diff = diff_.mutable_cpu_data();
+    Dtype loss(0.0);
+    Dtype avg_iou(0.0), avg_cat(0.0), avg_allcat(0.0), avg_obj(0.0), avg_anyobj(0.0);
+    Dtype obj_count(0);
+    int locations = pow(width_, 2);
+    caffe_set(diff_.count(), Dtype(0.), diff);
+
+    if (softmax_){
+	    for (int b = 0; b < batch_; ++b){
+		   int index = b*width_*height_*((1 + coords_)*num_object_ + num_class_);
+		   for (int i = 0; i < width_*height_; ++i) {
+			   int offset = i*num_class_;
+			   softmax_op(input_data + index + offset, num_class_, 1);
+		   }
+	    }
     }
-  }
-  class_loss /= obj_count;
-  coord_loss /= obj_count;
-  obj_loss /= obj_count;
-  noobj_loss /= (locations * num_object_ * bottom[0]->num() - obj_count);
 
-  avg_iou /= obj_count;
-  avg_obj /= obj_count;
-  avg_no_obj /= (locations * num_object_ * bottom[0]->num() - obj_count);
-  avg_cls /= obj_count;
-  avg_pos_cls /= obj_count;
+    for (int b = 0; b < batch_; ++b) {
+	    int index = b * width_*height_*((1 + coords_)*num_object_ + num_class_);
+        for (int i = 0; i < locations; ++i) {
+		   int true_index = (b * locations + i)*(1 + num_class_ + coords_);
+           for (int j = 0; j < num_object_; ++j) {
+		     int p_index = index + num_class_ * locations + i* num_object_ + j;
+             loss += noobject_scale_ * pow(input_data[p_index], 2);
+		     diff[p_index] = noobject_scale_ * (0 - input_data[p_index]);
+             avg_anyobj += input_data[p_index];
+           }
 
-  loss = class_loss + coord_loss + obj_loss + noobj_loss;
-  obj_count /= bottom[0]->num();
-  top[0]->mutable_cpu_data()[0] = loss;
+           int isobj = label_data[true_index];
+           if (!isobj) {
+             continue;
+           }
 
-  // LOG(INFO) << "average objects: " << obj_count;
-  LOG(INFO) << "loss: " << loss << " class_loss: " << class_loss << " obj_loss: " 
-        << obj_loss << " noobj_loss: " << noobj_loss << " coord_loss: " << coord_loss;
-  LOG(INFO) << "avg_iou: " << avg_iou << " avg_obj: " << avg_obj << " avg_no_obj: "
-        << avg_no_obj << " avg_cls: " << avg_cls << " avg_pos_cls: " << avg_pos_cls;
+           obj_count += 1;
+		   int class_index = index + i*num_class_;
+           for (int j = 0; j < num_class_; ++j) {
+			  diff[class_index] = class_scale_ * (label_data[true_index + 1 + j] - input_data[class_index+j]);
+			  loss += class_scale_ * pow(label_data[true_index + 1 + j] - input_data[class_index+j], 2);
+              avg_allcat += input_data[class_index+j];
+		      if (label_data[true_index + 1 + j])
+                  avg_cat += input_data[class_index+j]; 
+		   }
+
+          const Dtype* true_box_pt = label_data + true_index + 1 + num_class_;
+		  vector<Dtype> true_box; 
+		  true_box.push_back((*true_box_pt)/width_);
+		  true_box.push_back((*(true_box_pt + 1))/width_);
+		  true_box.push_back(*(true_box_pt + 2));
+		  true_box.push_back(*(true_box_pt + 3));
+		  
+      
+          Dtype best_iou = 0.;
+          Dtype best_rmse = 20.;
+          int best_index = 0;
+
+          for (int j = 0; j < num_object_; ++j) {
+             vector<Dtype> box;
+			 const Dtype* box_pt = input_data + index + (num_class_ + num_object_)*locations + (i*num_object_+j)*coords_;
+             box.push_back(*box_pt/width_);
+             box.push_back((*(box_pt + 1))/width_);
+             box.push_back(*(box_pt + 2));
+             box.push_back(*(box_pt + 3));
+       
+             if (sqrt_) {
+                 box[2] = pow(box[2], 2);
+                 box[3] = pow(box[3], 2);
+             }
+           
+			 Dtype iou = Calc_iou(box, true_box);
+             Dtype rmse = Calc_rmse(box, true_box);
+             if (best_iou > 0 || iou > 0) {
+               if (iou > best_iou) {
+                  best_iou = iou;
+                  best_index = j;
+               }
+             } else {
+                 if (rmse < best_rmse) {
+                  best_rmse = rmse;
+                  best_index = j;
+                 }
+             }
+           }
+
+		   int box_index = index + locations*(num_class_ + num_object_) + (i*num_object_ + best_index) * coords_;
+		   int tbox_index = true_index + 1 + num_class_;
+		   vector<Dtype> out;
+		   out.push_back((*(input_data+box_index)) / width_);
+		   out.push_back((*(input_data + box_index + 1)) / width_);
+		   out.push_back(*(input_data + box_index + 2));
+		   out.push_back(*(input_data + box_index + 3));
+		   if (sqrt_) {
+			  out[2] = out[2]*out[2];
+			  out[3] = out[3]*out[3];
+		   }
+		   float iou = Calc_iou(out, true_box);
+
+           int p_index = index + num_class_ * locations + i*num_object_ + best_index;
+           loss -= noobject_scale_ * pow(input_data[p_index], 2);
+           loss += object_scale_ * pow(1.0-input_data[p_index], 2);
+           avg_obj += input_data[p_index];
+	       diff[p_index] = object_scale_ * (1.0 - input_data[p_index]);
+           // rescore
+	       if (rescore_)
+               diff[p_index] = object_scale_ * (best_iou - input_data[p_index]);
+     
+	 
+           for (int k = 0; k < 4; ++k) {
+             diff[box_index + k ] = coord_scale_ * (label_data[tbox_index+k] - input_data[box_index+k]);
+           }
+	       if (sqrt_) {
+			   diff[box_index + 2] = coord_scale_ * (sqrt(label_data[tbox_index + 2]) - input_data[box_index + 2]);
+			   diff[box_index + 3] = coord_scale_ * (sqrt(label_data[tbox_index + 3]) - input_data[box_index + 3]);
+	       }
+		   loss += pow(1 - iou, 2);
+		   avg_iou += iou;
+        }
+      }
+    
+	  float sum = 0;
+	  for (int i = 0; i < diff_.count(); ++i)
+	  {
+		  sum += diff[i] * diff[i];
+	  }
+	  loss = sum;
+      top[0]->mutable_cpu_data()[0] = loss;
 }
 
 template <typename Dtype>
@@ -210,10 +221,6 @@ void DetectionLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
         bottom[0]->mutable_cpu_diff());
   }
 }
-
-//#ifndef CPU_ONLY
-//STUB_GPU(DetectionLossLayer);
-//#endif
 
 INSTANTIATE_CLASS(DetectionLossLayer);
 REGISTER_LAYER_CLASS(DetectionLoss);

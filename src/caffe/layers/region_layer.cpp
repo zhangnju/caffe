@@ -56,7 +56,7 @@ void RegionLayer<Dtype>::LayerSetUp(
   coords_ = param.coords(); //4
   num_ = param.num(); //5
   softmax_ = param.softmax(); //
-  batch_ = 1;//check me 
+  batch_ = param.batch();;//check me 
   jitter_ = param.jitter(); 
   rescore_ = param.rescore();
   

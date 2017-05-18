@@ -41,7 +41,11 @@ class DetectionLossLayer : public LossLayer<Dtype> {
   // virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
   //     const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
 
-  int side_;
+  int width_;
+  int height_;
+  int batch_;
+  int coords_;
+  int softmax_;
   int num_class_;
   int num_object_;
   float object_scale_;
