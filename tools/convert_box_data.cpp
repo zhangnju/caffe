@@ -58,13 +58,14 @@ int main(int argc, char** argv) {
   gflags::SetUsageMessage("Convert a set of images to the leveldb/lmdb\n"
         "format used as input for Caffe.\n"
         "Usage:\n"
-        "    convert_imageset [FLAGS] ROOTFOLDER/ LISTFILE DB_NAME\n"
-        "The ImageNet dataset for the training demo is at\n"
-        "    http://www.image-net.org/download-images\n");
+        "    convert_box_data --resize_width=$RESIZE_W --resize_height=$RESIZE_H \
+              --label_file=$LABEL_FILE  $ROOT_DIR $LIST_FILE $LMDB_DIR \
+			  --encoded=true --encode_type=jpg --shuffle=$SHUFFLE\n"
+        );
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   if (argc < 4) {
-    gflags::ShowUsageWithFlagsRestrict(argv[0], "tools/convert_imageset");
+    gflags::ShowUsageWithFlagsRestrict(argv[0], "tools/convert_box_data");
     return 1;
   }
 
