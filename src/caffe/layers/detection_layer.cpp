@@ -2,12 +2,18 @@
 #include <cfloat>
 #include <vector>
 #include <cmath>
-
+#include "caffe/layer.hpp"
 #include "caffe/layers/detection_layer.hpp"
 #include "caffe/util/math_functions.hpp"
 
 namespace caffe {
-	
+
+template <typename Dtype>
+void DetectionLayer<Dtype>::Reshape(
+	const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
+	NOT_IMPLEMENTED;
+}
+
 template <typename Dtype>
 void DetectionLayer<Dtype>::LayerSetUp(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
@@ -23,7 +29,7 @@ void DetectionLayer<Dtype>::LayerSetUp(
 
   int input_count = bottom[0]->count(1);
   // outputs: classes, iou, coordinates
-  int tmp_input_count = side_ * side_ * (num_class_ + (1 + 4) * num_object_);
+  int tmp_input_count = width_ * height_ * (num_class_ + (1 + 4) * num_object_);
   CHECK_EQ(input_count, tmp_input_count);
 }
 
@@ -36,9 +42,9 @@ void DetectionLayer<Dtype>::Forward_cpu(
   if (softmax_){
 	  for (int b = 0; b < batch_; ++b){
 		  int index = b*width_*height_*((1 + coords_)*num_object_ + num_class_);
-		  for (i = 0; i < width_*height_; ++i) {
+		  for (int i = 0; i < width_*height_; ++i) {
 			  int offset = i*num_class_;
-			  softmax_op(input_data + index + offset, num_class_, 1, 1);
+			  softmax_op(input_data + index + offset, num_class_, 1);
 		  }
 	  }
   }
@@ -51,14 +57,14 @@ void DetectionLayer<Dtype>::Forward_cpu(
 		  int p_index = width_*height_*num_class_ + i*num_class_ + n;
 		  Dtype scale = input_data[p_index];
 		  int box_index = width_*height_*(num_class_ + num_object_) + (i*num_object_ + n) * 4;
-		  box_data[index] = (input_data[box_index + 0] + col) / l.side; 
-		  box_data[index+1] = (input_data[box_index + 1] + row) / l.side;
+		  box_data[index] = (input_data[box_index + 0] + col) / width_; 
+		  box_data[index+1] = (input_data[box_index + 1] + row) / width_;
 		  box_data[index+2] = pow(input_data[box_index + 2], (sqrt_ ? 2 : 1));
 		  box_data[index+3] = pow(input_data[box_index + 3], (sqrt_ ? 2 : 1));
 		  for (int j = 0; j < num_class_; ++j){
 			  int class_index = i*num_class_;
 			  Dtype prob = scale*input_data[class_index + j];
-			  prob_data[index+j] = (prob > thresh) ? prob : 0;
+			  prob_data[index+j] = (prob > thresh_) ? prob : 0;
 		  }
 	  }
   }

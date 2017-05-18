@@ -10,7 +10,7 @@ namespace caffe {
 template <typename Dtype>
 class RegionLayer : public Layer<Dtype> {
  public:
-  explicit RegionLossLayer(const LayerParameter& param)
+  explicit RegionLayer(const LayerParameter& param)
 	  : Layer<Dtype>(param) {}
   virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top);
@@ -44,7 +44,8 @@ class RegionLayer : public Layer<Dtype> {
   int absolute_;
   float thresh_;
   int random_;
-  
+  vector<Dtype> biases_;
+
   inline int entry_index(int batch, int location, int entry)
   {
 	  int n = location / (width_*height_);

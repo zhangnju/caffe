@@ -585,6 +585,10 @@ message DetectionLossParameter {
   optional float coord_scale = 7 [default = 5.0];
   optional bool sqrt = 8 [default = true];
   optional bool rescore = 9 [default = true];
+  optional uint32 softmax = 10 [default = 1];
+  optional uint32 batch = 11 [default = 1];
+  optional uint32 coords = 12 [default = 4];
+  optional float thresh = 13 [default = 0.2];
 }
 message RegionLossParameter{
   //Yolo 9000

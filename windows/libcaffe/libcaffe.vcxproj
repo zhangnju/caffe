@@ -122,6 +122,7 @@
     <ClCompile Include="..\..\src\caffe\layers\cudnn_tanh_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\data_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\deconv_layer.cpp" />
+    <ClCompile Include="..\..\src\caffe\layers\detection_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\detection_loss_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\dropout_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\dummy_data_layer.cpp" />
@@ -153,6 +154,7 @@
     <ClCompile Include="..\..\src\caffe\layers\prelu_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\psroi_pooling_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\reduction_layer.cpp" />
+    <ClCompile Include="..\..\src\caffe\layers\region_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\region_loss_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\relu_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\reshape_layer.cpp" />
@@ -232,6 +234,7 @@
     <ClInclude Include="..\..\include\caffe\layers\cudnn_tanh_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\data_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\deconv_layer.hpp" />
+    <ClInclude Include="..\..\include\caffe\layers\detection_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\detection_loss_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\dropout_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\dummy_data_layer.hpp" />
@@ -264,6 +267,7 @@
     <ClInclude Include="..\..\include\caffe\layers\psroi_pooling_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\python_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\reduction_layer.hpp" />
+    <ClInclude Include="..\..\include\caffe\layers\region_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\region_loss_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\relu_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\reshape_layer.hpp" />

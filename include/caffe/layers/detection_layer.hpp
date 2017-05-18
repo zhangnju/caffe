@@ -33,13 +33,16 @@ class DetectionLayer : public Layer<Dtype> {
 
   int width_;
   int height_;
+  int coords_;
+  int softmax_;
+  int batch_;
   int num_class_;
   int num_object_;
   float threshold_;
   bool sqrt_;
   bool constriant_;
   int score_type_;
-  float nms_;
+  float thresh_;
 };
 
 }  // namespace caffe
