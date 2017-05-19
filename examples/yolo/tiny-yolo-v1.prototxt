@@ -412,7 +412,5 @@ layer {
     num_object: 2
     softmax: 1
 	batch: 1
-    sqrt: true
-    constriant: true
   }
 }
