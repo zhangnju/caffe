@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libcaffe", "libcaffe\libcaffe.vcxproj", "{A9ACEF83-7B63-4574-A554-89CE869EA141}"
 EndProject
@@ -71,7 +71,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "upgrade_solver_proto_text",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "convert_box_data", "convert_box_data\convert_box_data.vcxproj", "{FD50F913-B55D-4549-A3C2-9724129A450A}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_detection", "test_detection\test_detection.vcxproj", "{EEBAAF91-45FC-4D14-87FF-60E85B243E00}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "yolo_detection", "yolo_detection\yolo_detection.vcxproj", "{EEBAAF91-45FC-4D14-87FF-60E85B243E00}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
