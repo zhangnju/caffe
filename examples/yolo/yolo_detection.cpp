@@ -31,9 +31,9 @@ using std::pair;
 DEFINE_string(input, "",
 	"Input image for run dection");
 DEFINE_int32(width, 0,
-	"The Width of image.");
+	"The Width of resized image.");
 DEFINE_int32(height, 0,
-	"The Height of image.");
+	"The Height of resized image.");
 DEFINE_string(gpu, "",
     "Optional; run in GPU mode on given device IDs separated by ','."
     "Use '-gpu all' to run on all available GPUs. The effective training "

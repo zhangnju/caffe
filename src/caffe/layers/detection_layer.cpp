@@ -11,7 +11,16 @@ namespace caffe {
 template <typename Dtype>
 void DetectionLayer<Dtype>::Reshape(
 	const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
-	NOT_IMPLEMENTED;
+	//reshpe top blob
+	vector<int> box_shape(4);
+	box_shape[0] = width_; box_shape[1] = height_;
+	box_shape[2] = num_object_; box_shape[3] = coords_;
+	top[0]->Reshape(box_shape);
+
+	vector<int> prob_shape(4);
+	prob_shape[0] = width_; prob_shape[1] = height_;
+	prob_shape[2] = num_object_; prob_shape[3] = num_class_;
+	top[1]->Reshape(prob_shape);
 }
 
 template <typename Dtype>
@@ -29,7 +38,7 @@ void DetectionLayer<Dtype>::LayerSetUp(
 
   int input_count = bottom[0]->count(1);
   // outputs: classes, iou, coordinates
-  int tmp_input_count = width_ * height_ * (num_class_ + (1 + 4) * num_object_);
+  int tmp_input_count = width_ * height_ * (num_class_ + (1 + coords_) * num_object_);
   CHECK_EQ(input_count, tmp_input_count);
 }
 

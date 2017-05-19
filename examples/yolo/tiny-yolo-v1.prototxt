@@ -405,7 +405,8 @@ layer {
   name: "detection"
   type: "Detection"
   bottom: "regression"
-  top: "result"
+  top: "box"
+  top: "prob"
   detection_loss_param {
     side: 7
     num_class: 20
