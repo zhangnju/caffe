@@ -417,11 +417,40 @@ layer {
   name: "conv9"
   type: "Convolution"
   bottom: "scale8"
-  top: "result"
+  top: "regression"
   convolution_param {
     num_output: 125
     kernel_size: 1
     stride: 1
+  }
+}
+layer {
+  name: "region"
+  type: "Region"
+  bottom: "regression"
+  top: "box"
+  top: "prob"
+  region_loss_param {
+    side: 13
+    num_class: 20
+    num: 5
+    thresh: 0.5
+    softmax: 1
+	batch: 1
+	bias_match: 1
+	coords: 4
+	jitter: 0.2
+    rescore: 1
+    biases: 1.08
+    biases: 1.19
+    biases: 3.42
+    biases: 4.41
+    biases: 6.63
+    biases: 11.38
+    biases: 9.42
+    biases: 5.11
+    biases: 16.62
+    biases: 10.52
   }
 }
 
