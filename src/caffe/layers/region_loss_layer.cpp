@@ -166,7 +166,7 @@ void RegionLossLayer<Dtype>::Forward_cpu(
 	if (softmax_)
 	{
 		int index = entry_index(0, 0, 5);
-		softmax_cpu(input_data + index, num_class_, batch_*num_, height_*width_*(num_class_ + coords_ + 1), width_*height_, width_*height_,1);
+		softmax_cpu(input_data + index, num_class_, batch_*num_, height_*width_*(num_class_ + coords_ + 1), width_*height_, 1,width_*height_);
 	}
 	
 
