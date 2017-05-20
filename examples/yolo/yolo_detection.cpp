@@ -30,10 +30,8 @@ using std::pair;
 
 DEFINE_string(input, "",
 	"Input image for run dection");
-DEFINE_int32(width, 0,
-	"The Width of resized image.");
-DEFINE_int32(height, 0,
-	"The Height of resized image.");
+DEFINE_int32(version, 1,
+	"The version of yolo:V1 is 1, and V2 is 2");
 DEFINE_string(gpu, "",
     "Optional; run in GPU mode on given device IDs separated by ','."
     "Use '-gpu all' to run on all available GPUs. The effective training "
@@ -190,6 +188,19 @@ void ComputeAP(const vector<pair<float, int> >& tp, const int num_pos,
     LOG(FATAL) << "Unknown ap_version: " << ap_version;
   }
 }
+int max_index(float *a, int n)
+{
+	if (n <= 0) return -1;
+	int i, max_i = 0;
+	float max = a[0];
+	for (i = 1; i < n; ++i){
+		if (a[i] > max){
+			max = a[i];
+			max_i = i;
+		}
+	}
+	return max_i;
+}
 
 void resize_image(std::string& input,std::string& output,int width,int height)
 {
@@ -229,7 +240,23 @@ int test_detection() {
     LOG(INFO) << "Use CPU.";
     Caffe::set_mode(Caffe::CPU);
   }
-  int side = 7;
+  int side ,resize_width,resize_height;
+  if (FLAGS_version == 1)
+  {
+	  side = 7;
+	  resize_width = 448;
+	  resize_height = 448;
+  }
+  else if (FLAGS_version == 2)
+  {
+	  side = 13;
+	  resize_width = 416;
+	  resize_height = 416;
+  }
+  else
+  {
+	  LOG(ERROR) << "Wrong Yolo Version ";
+  }
   int num_object = 2;
   int num_class = 20;
 
@@ -325,11 +352,11 @@ int test_detection() {
   //resize image
   std::string resize_img = "resized.jpg";
 #ifdef USE_OPENCV
-  resize_image(FLAGS_input, resize_img, FLAGS_width, FLAGS_height);
+  resize_image(FLAGS_input, resize_img, resize_width, resize_height);
 #endif
   //get datum
   caffe::Datum datum;
-  if (!ReadImageToDatum(resize_img, 1, FLAGS_width, FLAGS_height, &datum)) {
+  if (!ReadImageToDatum(resize_img, 1, resize_width, resize_height, &datum)) {
 	  LOG(ERROR) << "Error during file reading";
   }
 
@@ -364,6 +391,37 @@ int test_detection() {
   float type = 0.0;
 
   const vector<Blob<float>*>& result = caffe_net.Forward(bottom, &type);
+#if 0
+  if (FLAGS_version == 2)
+  {
+	  //add the post-processing for yolo v2
+	  int new_w = 0;
+	  int new_h = 0;
+	  if (((float)resize_width/ side) < ((float)resize_height / side)) {
+		  new_w = resize_width;
+		  new_h = resize_width;
+	  }
+	  else {
+		  new_h = resize_height;
+		  new_w = resize_height;
+	  }
+	  for (int i = 0; i < n; ++i){
+		  box b = boxes[i];
+		  b.x = (b.x - (netw - new_w) / 2. / netw) / ((float)new_w / netw);
+		  b.y = (b.y - (neth - new_h) / 2. / neth) / ((float)new_h / neth);
+		  b.w *= (float)netw / new_w;
+		  b.h *= (float)neth / new_h;
+		  if (!relative){
+			  b.x *= w;
+			  b.w *= w;
+			  b.y *= h;
+			  b.h *= h;
+		  }
+		  boxes[i] = b;
+	  }
+  }
+#endif
+
   std::cout << "OK" << std::endl;
 #endif
   return 0;
