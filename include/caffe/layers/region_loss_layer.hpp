@@ -2,7 +2,6 @@
 #define CAFFE_REGION_LOSS_LAYER_HPP_
 
 #include <vector>
-#include "caffe/util/tree.hpp"
 #include "caffe/blob.hpp"
 #include "caffe/layer.hpp"
 #include "caffe/proto/caffe.pb.h"
@@ -11,37 +10,6 @@
 #include <map>
 
 namespace caffe {
-template <typename Dtype>
-Dtype Overlap(Dtype x1, Dtype w1, Dtype x2, Dtype w2);
-
-template <typename Dtype>
-Dtype Calc_iou(const vector<Dtype>& box, const vector<Dtype>& truth);
-
-template <typename Dtype>
-void disp(Blob<Dtype>& swap);
-
-template <typename Dtype>
-Dtype softmax_region(Dtype* input, int classes);
-//template <typename Dtype>
-//Dtype softmax_region(Dtype* input, int n, float temp, Dtype* output);
-
-//template <typename Dtype>
-//Dtype* flatten(Dtype* input_data, int size, int channels, int batch, int forward);
-template <typename Dtype>
-void softmax_tree(Dtype* input, tree *t);
-
-template <typename Dtype>
-Dtype get_hierarchy_prob(Dtype* input_data, tree *t, int c);
-
-template <typename Dtype>
-vector<Dtype> get_region_box(Dtype* x, vector<Dtype> biases, int n, int index, int i, int j, int w, int h);
-
-template <typename Dtype>
-Dtype delta_region_box(vector<Dtype> truth, Dtype* x, vector<Dtype> biases, int n, int index, int i, int j, int w, int h, Dtype* delta, float scale);
-
-template <typename Dtype>
-void delta_region_class(Dtype* input_data, Dtype* &diff, int index, int class_label, int classes, string softmax_tree, tree *t, float scale, Dtype* avg_cat);
-
 template <typename Dtype>
 class RegionLossLayer : public LossLayer<Dtype> {
  public:
@@ -92,7 +60,7 @@ class RegionLossLayer : public LossLayer<Dtype> {
   {
 	  int n = location / (width_*height_);
 	  int loc = location % (width_*height_);
-	  return batch*(height_*width_*num_*(num_class_ + coords_ + 1)) + num_*width_*height_*(coords_ + num_class_ + 1) + entry*width_*height_ + loc;
+	  return batch*(height_*width_*num_*(num_class_ + coords_ + 1)) + n*width_*height_*(coords_ + num_class_ + 1) + entry*width_*height_ + loc;
   }
 };
 

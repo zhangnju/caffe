@@ -13,7 +13,16 @@ namespace caffe {
 template <typename Dtype>
 void RegionLayer<Dtype>::Reshape(
 	const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
-	NOT_IMPLEMENTED;
+	//reshpe top blob
+	vector<int> box_shape(4);
+	box_shape[0] = width_; box_shape[1] = height_;
+	box_shape[2] = num_; box_shape[3] = coords_;
+	top[0]->Reshape(box_shape);
+
+	vector<int> prob_shape(4);
+	prob_shape[0] = width_; prob_shape[1] = height_;
+	prob_shape[2] = num_; prob_shape[3] = num_class_;
+	top[1]->Reshape(prob_shape);
 }
 
 template <typename Dtype>

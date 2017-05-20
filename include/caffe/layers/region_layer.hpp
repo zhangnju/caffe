@@ -50,7 +50,7 @@ class RegionLayer : public Layer<Dtype> {
   {
 	  int n = location / (width_*height_);
 	  int loc = location % (width_*height_);
-	  return batch*(height_*width_*num_*(num_class_ + coords_ + 1)) + num_*width_*height_*(coords_ + num_class_ + 1) + entry*width_*height_ + loc;
+	  return batch*(height_*width_*num_*(num_class_ + coords_ + 1)) + n*width_*height_*(coords_ + num_class_ + 1) + entry*width_*height_ + loc;
   }
 };
 
