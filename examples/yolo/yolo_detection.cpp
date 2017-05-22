@@ -30,8 +30,8 @@ using std::pair;
 
 DEFINE_string(input, "",
 	"Input image for run dection");
-DEFINE_int32(version, 1,
-	"The version of yolo:V1 is 1, and V2 is 2");
+DEFINE_int32(type, 1,
+	"The type of yolo:V1 is 1, and V2 is 2");
 DEFINE_string(gpu, "",
     "Optional; run in GPU mode on given device IDs separated by ','."
     "Use '-gpu all' to run on all available GPUs. The effective training "
@@ -241,13 +241,13 @@ int test_detection() {
     Caffe::set_mode(Caffe::CPU);
   }
   int side ,resize_width,resize_height;
-  if (FLAGS_version == 1)
+  if (FLAGS_type == 1)
   {
 	  side = 7;
 	  resize_width = 448;
 	  resize_height = 448;
   }
-  else if (FLAGS_version == 2)
+  else if (FLAGS_type == 2)
   {
 	  side = 13;
 	  resize_width = 416;
@@ -421,7 +421,18 @@ int test_detection() {
 	  }
   }
 #endif
-
+//dump the output
+  const float* box_data = result[0]->cpu_data();
+  int box_size = result[0]->count();
+  FILE * pFile;
+  pFile = fopen("box_caffe.bin", "wb");
+  fwrite(box_data, sizeof(float), box_size, pFile);
+  fclose(pFile);
+  const float* prob_data = result[1]->cpu_data();
+  int prob_size = result[1]->count();
+  pFile = fopen("prob_caffe.bin", "wb");
+  fwrite(prob_data, sizeof(float), prob_size, pFile);
+  fclose(pFile);
   std::cout << "OK" << std::endl;
 #endif
   return 0;
