@@ -218,7 +218,152 @@ void resize_image(std::string& input,std::string& output,int width,int height)
 	}
 		
 }
+#if 1
+std::string names[20] = { "aeroplane","bicycle","bird","boat","bottle","bus","car","cat","chair","cow",
+                          "diningtable","dog","horse","motorbike","person","pottedplant","sheep","sofa","train","tvmonitor" };
+void load_alphabet(cv::Mat* alphabets)
+{
+	int i, j;
+	const int nsize = 8;
+	if (alphabets==NULL)
+	  alphabets = (cv::Mat*)calloc(nsize*(127-32), sizeof(cv::Mat));
+	for (j = 0; j < nsize; ++j){
+		for (i = 32; i < 127; ++i){
+			char buff[256];
+			sprintf(buff, "data/labels/%d_%d.png", i, j);
+			alphabets[j*(127-32)+i] = cv::imread(buff, CV_LOAD_IMAGE_COLOR);
+		}
+	}
+}
 
+int inline max_index(float *a, int n)
+{
+	if (n <= 0) return -1;
+	int i, max_i = 0;
+	float max_ = a[0];
+	for (i = 1; i < n; ++i){
+		if (a[i] > max_){
+			max_ = a[i];
+			max_i = i;
+		}
+	}
+	return max_i;
+}
+
+char colors[6][3] = { { 1, 0, 1 }, { 0, 0, 1 }, { 0, 1, 1 }, { 0, 1, 0 }, { 1, 1, 0 }, { 1, 0, 0 } };
+
+char get_color(int c, int x, int max_)
+{
+	float ratio = ((float)x / max_) * 5;
+	int i = floor(ratio);
+	int j = ceil(ratio);
+	ratio -= i;
+	char r = (1 - ratio) * colors[i][c] + ratio*colors[j][c];
+	//printf("%f\n", r);
+	return r;
+}
+
+void draw_box(cv::Mat& a, int x1, int y1, int x2, int y2, uchar r, uchar g, uchar b)
+{
+	//normalize_image(a);
+	int i;
+#if 0
+	for (i = x1; i <= x2; ++i){
+		a.data[i + y1*a.cols + 0 * a.cols*a.rows] = r;
+		a.data[i + y2*a.cols + 0 * a.cols*a.rows] = r;
+
+		a.data[i + y1*a.cols + 1 * a.cols*a.rows] = g;
+		a.data[i + y2*a.cols + 1 * a.cols*a.rows] = g;
+
+		a.data[i + y1*a.cols + 2 * a.cols*a.rows] = b;
+		a.data[i + y2*a.cols + 2 * a.cols*a.rows] = b;
+	}
+	for (i = y1; i <= y2; ++i){
+		a.data[x1 + i*a.cols + 0 * a.cols*a.rows] = r;
+		a.data[x2 + i*a.cols + 0 * a.cols*a.rows] = r;
+
+		a.data[x1 + i*a.cols + 1 * a.cols*a.rows] = g;
+		a.data[x2 + i*a.cols + 1 * a.cols*a.rows] = g;
+
+		a.data[x1 + i*a.cols + 2 * a.cols*a.rows] = b;
+		a.data[x2 + i*a.cols + 2 * a.cols*a.rows] = b;
+	}
+#else
+	for (i = x1; i <= x2; ++i){
+		a.at<cv::Vec3b>(y1, i)[0] = b;
+		a.at<cv::Vec3b>(y2, i)[0] = b;
+
+		a.at<cv::Vec3b>(y1, i)[1] = g;
+		a.at<cv::Vec3b>(y2, i)[1] = g;
+
+		a.at<cv::Vec3b>(y1, i)[2] = r;
+		a.at<cv::Vec3b>(y2, i)[2] = r;
+	}
+	for (i = y1; i <= y2; ++i){
+		a.at<cv::Vec3b>(i, x1)[0] = b;
+		a.at<cv::Vec3b>(i, x2)[0] = b;
+
+		a.at<cv::Vec3b>(i, x1)[1] = g;
+		a.at<cv::Vec3b>(i, x2)[1] = g;
+
+		a.at<cv::Vec3b>(i, x1)[2] = r;
+		a.at<cv::Vec3b>(i, x2)[2] = r;
+	}
+	
+#endif
+}
+
+void draw_box_width(cv::Mat& a, int x1, int y1, int x2, int y2, int w, uchar r, uchar g, uchar b)
+{
+	int i;
+	for (i = 0; i < w; ++i){
+		draw_box(a, x1 + i, y1 + i, x2 - i, y2 - i, r, g, b);
+	}
+}
+
+void draw_detections(std::string input, int num, float thresh, float *boxes, float *probs, int classes)
+{
+	cv::Mat orig_image = cv::imread(input, CV_LOAD_IMAGE_COLOR);
+
+	for (int i = 0; i < num; ++i){
+		int class_ = max_index(&probs[i], classes);
+		float prob = probs[i*20+class_];
+		if (prob > thresh){
+			int width = orig_image.rows * .012;
+			printf("%s: %.0f%%\n", names[class_], prob * 100);
+			int offset = class_ * 123457 % classes;
+			uchar red = get_color(2, offset, classes);
+			uchar green = get_color(1, offset, classes);
+			uchar blue = get_color(0, offset, classes);
+			uchar rgb[3];
+
+			//width = prob*20+2;
+
+			rgb[0] = red;
+			rgb[1] = green;
+			rgb[2] = blue;
+			float* b = &boxes[i*4];
+
+			int left = (*b - *(b+2) / 2.)*orig_image.cols;
+			int right = (*b + *(b+2) / 2.)*orig_image.cols;
+			int top = (*(b+1) - *(b+3) / 2.)*orig_image.rows;
+			int bot = (*(b+1) + *(b+3) / 2.)*orig_image.rows;
+
+			if (left < 0) left = 0;
+			if (right > orig_image.cols - 1) right = orig_image.cols - 1;
+			if (top < 0) top = 0;
+			if (bot > orig_image.rows - 1) bot = orig_image.rows - 1;
+
+			draw_box_width(orig_image, left, top, right, bot, width, red, green, blue);
+			if (alphabet) {
+				image label = get_label(alphabet, names[class_], (im.h*.03) / 10);
+				draw_label(im, top + width, left, label, rgb);
+				free_image(label);
+			}
+		}
+	}
+}
+#endif 
 // Test: score a model.
 int test_detection() {
   CHECK_GT(FLAGS_model.size(), 0) << "Need a model definition to score.";
@@ -421,6 +566,7 @@ int test_detection() {
 	  }
   }
 #endif
+  
 //dump the output
   const float* box_data = result[0]->cpu_data();
   int box_size = result[0]->count();

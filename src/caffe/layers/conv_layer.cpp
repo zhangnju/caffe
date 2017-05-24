@@ -24,6 +24,13 @@ void ConvolutionLayer<Dtype>::compute_output_shape() {
 template <typename Dtype>
 void ConvolutionLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
+	FILE * pFile;
+	pFile = fopen("conv_caffe.bin", "wb");
+	for (int i = 0; i < bottom.size(); ++i) {
+		const Dtype* bottom_data = bottom[i]->cpu_data();
+		fwrite(bottom_data, sizeof(Dtype), bottom[i]->count(), pFile);
+	}
+	fclose(pFile);
   const Dtype* weight = this->blobs_[0]->cpu_data();
   for (int i = 0; i < bottom.size(); ++i) {
     const Dtype* bottom_data = bottom[i]->cpu_data();

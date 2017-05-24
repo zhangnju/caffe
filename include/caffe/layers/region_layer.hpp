@@ -7,6 +7,13 @@
 #include "caffe/proto/caffe.pb.h"
 
 namespace caffe {
+
+typedef struct{
+	int index;
+	int classes;
+	float **probs;
+} sortable_bbox;
+
 template <typename Dtype>
 class RegionLayer : public Layer<Dtype> {
  public:

@@ -141,7 +141,13 @@ void RegionLayer<Dtype>::Forward_cpu(
 				prob_data[index+num_class_] = max_prob;
 			}
 		}
-
+	 // nms 
+#if 0
+	if (nms_)
+	{
+       //do we need to do sort and filtering according to nms?
+	}
+#endif
 	 //add the function of correct_box_data here ?
 }
 INSTANTIATE_CLASS(RegionLayer);
