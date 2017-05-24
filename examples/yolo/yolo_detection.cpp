@@ -188,14 +188,14 @@ void ComputeAP(const vector<pair<float, int> >& tp, const int num_pos,
     LOG(FATAL) << "Unknown ap_version: " << ap_version;
   }
 }
-int max_index(float *a, int n)
+int max_index(const float *a, int n)
 {
 	if (n <= 0) return -1;
 	int i, max_i = 0;
-	float max = a[0];
+	float max_ = a[0];
 	for (i = 1; i < n; ++i){
-		if (a[i] > max){
-			max = a[i];
+		if (a[i] > max_){
+			max_ = a[i];
 			max_i = i;
 		}
 	}
@@ -219,7 +219,7 @@ void resize_image(std::string& input,std::string& output,int width,int height)
 		
 }
 #if 1
-std::string names[20] = { "aeroplane","bicycle","bird","boat","bottle","bus","car","cat","chair","cow",
+std::string labels[20] = { "aeroplane","bicycle","bird","boat","bottle","bus","car","cat","chair","cow",
                           "diningtable","dog","horse","motorbike","person","pottedplant","sheep","sofa","train","tvmonitor" };
 void load_alphabet(cv::Mat* alphabets)
 {
@@ -234,20 +234,6 @@ void load_alphabet(cv::Mat* alphabets)
 			alphabets[j*(127-32)+i] = cv::imread(buff, CV_LOAD_IMAGE_COLOR);
 		}
 	}
-}
-
-int inline max_index(float *a, int n)
-{
-	if (n <= 0) return -1;
-	int i, max_i = 0;
-	float max_ = a[0];
-	for (i = 1; i < n; ++i){
-		if (a[i] > max_){
-			max_ = a[i];
-			max_i = i;
-		}
-	}
-	return max_i;
 }
 
 char colors[6][3] = { { 1, 0, 1 }, { 0, 0, 1 }, { 0, 1, 1 }, { 0, 1, 0 }, { 1, 1, 0 }, { 1, 0, 0 } };
@@ -321,8 +307,9 @@ void draw_box_width(cv::Mat& a, int x1, int y1, int x2, int y2, int w, uchar r, 
 	}
 }
 
-void draw_detections(std::string input, int num, float thresh, float *boxes, float *probs, int classes)
+void draw_detections(std::string input, int num, float thresh, const float *boxes, const float *probs, int classes)
 {
+	std::string prediction = "prediction.jpg";
 	cv::Mat orig_image = cv::imread(input, CV_LOAD_IMAGE_COLOR);
 
 	for (int i = 0; i < num; ++i){
@@ -330,7 +317,7 @@ void draw_detections(std::string input, int num, float thresh, float *boxes, flo
 		float prob = probs[i*20+class_];
 		if (prob > thresh){
 			int width = orig_image.rows * .012;
-			printf("%s: %.0f%%\n", names[class_], prob * 100);
+			printf("%s: %.0f%%\n", labels[class_], prob * 100);
 			int offset = class_ * 123457 % classes;
 			uchar red = get_color(2, offset, classes);
 			uchar green = get_color(1, offset, classes);
@@ -342,7 +329,7 @@ void draw_detections(std::string input, int num, float thresh, float *boxes, flo
 			rgb[0] = red;
 			rgb[1] = green;
 			rgb[2] = blue;
-			float* b = &boxes[i*4];
+			const float* b = &boxes[i*4];
 
 			int left = (*b - *(b+2) / 2.)*orig_image.cols;
 			int right = (*b + *(b+2) / 2.)*orig_image.cols;
@@ -355,13 +342,19 @@ void draw_detections(std::string input, int num, float thresh, float *boxes, flo
 			if (bot > orig_image.rows - 1) bot = orig_image.rows - 1;
 
 			draw_box_width(orig_image, left, top, right, bot, width, red, green, blue);
-			if (alphabet) {
-				image label = get_label(alphabet, names[class_], (im.h*.03) / 10);
-				draw_label(im, top + width, left, label, rgb);
-				free_image(label);
+			cv::putText(orig_image, labels[class_], cv::Point(left, top), cv::FONT_HERSHEY_PLAIN, 1.0, CV_RGB(0, 255, 0), 2.0);
+#if 0
+			cv::Mat* alphabets = NULL;
+			load_alphabet(alphabets);
+			if (alphabets) {
+				//image label = get_label(alphabet, names[class_], (im.h*.03) / 10);
+				//draw_label(im, top + width, left, label, rgb);
+				//free_image(label);
 			}
+#endif
 		}
 	}
+	cv::imwrite(prediction, orig_image);
 }
 #endif 
 // Test: score a model.
@@ -566,7 +559,7 @@ int test_detection() {
 	  }
   }
 #endif
-  
+  draw_detections(FLAGS_input, 13 * 13 * 5, 0.2, result[0]->cpu_data(), result[1]->cpu_data(), 20);
 //dump the output
   const float* box_data = result[0]->cpu_data();
   int box_size = result[0]->count();

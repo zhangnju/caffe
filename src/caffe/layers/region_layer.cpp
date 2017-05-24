@@ -15,13 +15,13 @@ void RegionLayer<Dtype>::Reshape(
 	const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
 	//reshpe top blob
 	vector<int> box_shape(4);
-	box_shape[0] = width_; box_shape[1] = height_;
-	box_shape[2] = num_; box_shape[3] = coords_;
+	box_shape[0] = num_; box_shape[1] = height_;
+	box_shape[2] = width_; box_shape[3] = coords_;
 	top[0]->Reshape(box_shape);
 
 	vector<int> prob_shape(4);
-	prob_shape[0] = width_; prob_shape[1] = height_;
-	prob_shape[2] = num_; prob_shape[3] = num_class_;
+	prob_shape[0] = num_; prob_shape[1] = height_;
+	prob_shape[2] = width_; prob_shape[3] = num_class_;
 	top[1]->Reshape(prob_shape);
 }
 
@@ -125,6 +125,8 @@ void RegionLayer<Dtype>::Forward_cpu(
 			int obj_index = entry_index(0, n*width_*height_ + i, 4);
 			int box_index = entry_index(0, n*width_*height_ + i, 0);
 			float scale = input_data[obj_index];
+			if (scale != 0)
+				cout << "found" << endl;
 		 
 			vector<Dtype > box= get_region_box(input_data, biases_, n, box_index, col, row, width_, height_, width_*height_);
 			for (int k = 0; k < box.size(); k++)
@@ -135,6 +137,8 @@ void RegionLayer<Dtype>::Forward_cpu(
 			for (int j = 0; j < num_class_; ++j){
 				int class_index = entry_index(0, n*width_*height_ + i, 5 + j);
 				float prob = scale*input_data[class_index];
+				if (prob != 0)
+					cout << "found again" << endl;
 				prob_data[index+j] = (prob > thresh_) ? prob : 0;
 				if (prob > max_prob) max_prob = prob;
 				}

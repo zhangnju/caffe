@@ -434,7 +434,7 @@ layer {
     side: 13
     num_class: 20
     num: 5
-    thresh: 0.5
+    thresh: 0.2
     softmax: 1
 	batch: 1
 	bias_match: 1
