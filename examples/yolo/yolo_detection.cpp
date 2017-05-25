@@ -41,8 +41,8 @@ DEFINE_string(model, "",
 DEFINE_string(weights, "",
     "Optional; the pretrained weights to initialize finetuning, "
     "separated by ','. Cannot be set simultaneously with snapshot.");
-DEFINE_int32(iterations, 1,
-    "The number of iterations to run.");
+//DEFINE_int32(nms, 0.4,
+ //   "The number of iterations to run.");
 
 // Parse GPU ids or use all available devices
 static void get_gpus(vector<int>* gpus) {
@@ -207,6 +207,7 @@ void resize_image(std::string& input,std::string& output,int width,int height)
 	cv::Mat resize_image;
 	cv::Size size(width, height);
 	cv::Mat orig_image = cv::imread(input, CV_LOAD_IMAGE_COLOR);
+	std::cout << orig_image.channels() << " " << orig_image.elemSize()<< std::endl;
 	if (width!=orig_image.cols || height!=orig_image.rows)
 	{
 		cv::resize(orig_image, resize_image, size);
@@ -488,15 +489,43 @@ int test_detection() {
   LOG(INFO) << "Model: " << FLAGS_weights;
 #else
   //resize image
-  std::string resize_img = "resized.jpg";
+  std::string resize_img_cv = "resized_cv.jpg";
+  std::string resize_img_darknet = "resized_darknet.jpg";
 #ifdef USE_OPENCV
-  resize_image(FLAGS_input, resize_img, resize_width, resize_height);
+  resize_image(FLAGS_input, resize_img_cv, resize_width, resize_height);
+  {
+	  float* data = new float[resize_height*resize_width * 3];
+	  FILE * pFile;
+	  pFile = fopen("resized.bin", "rb");
+	  fread(data, sizeof(float), resize_width*resize_height * 3, pFile);
+	  fclose(pFile);
+	  cv::Mat img(resize_height, resize_width, CV_8UC3, cv::Scalar(0, 0, 0));
+	  for (int i = 0; i < resize_height; i++)
+		  for (int j = 0; j < resize_width; j++)
+			  for (int k = 0; k < 3; k++)
+			  {
+				  img.at<cv::Vec3b>(i, j)[k] = (uchar)(255*data[k*resize_height*resize_width + i*resize_width + j]);//data[c*m.h*m.w + y*m.w + x]
+				 // std::cout << data[k*resize_height*resize_width + i*resize_width + j] << std::endl;
+			  }
+	  delete[]data;
+	  cv::imwrite(resize_img_darknet, img);
+  }
 #endif
   //get datum
   caffe::Datum datum;
-  if (!ReadImageToDatum(resize_img, 1, resize_width, resize_height, &datum)) {
+#if 1
+  if (!ReadImageToDatum(resize_img_darknet, 1, resize_width, resize_height, &datum)) {
 	  LOG(ERROR) << "Error during file reading";
   }
+#else
+  std::string binfile = "resized.bin";
+  if (!ReadFileToDatum(binfile, 1, & datum)){
+	  LOG(ERROR) << "Error during file reading";
+  }
+  datum.set_channels(3);
+  datum.set_height(resize_height);
+  datum.set_width(resize_width);
+#endif
 
   //get the blob
   Blob<float>* blob = new Blob<float>(1, datum.channels(), datum.height(), datum.width());
@@ -529,12 +558,13 @@ int test_detection() {
   float type = 0.0;
 
   const vector<Blob<float>*>& result = caffe_net.Forward(bottom, &type);
-#if 0
-  if (FLAGS_version == 2)
+#if 1
+  if (FLAGS_type == 2)
   {
 	  //add the post-processing for yolo v2
 	  int new_w = 0;
 	  int new_h = 0;
+	  cv::Mat orig_image = cv::imread(FLAGS_input, CV_LOAD_IMAGE_COLOR);
 	  if (((float)resize_width/ side) < ((float)resize_height / side)) {
 		  new_w = resize_width;
 		  new_h = resize_width;
@@ -543,24 +573,20 @@ int test_detection() {
 		  new_h = resize_height;
 		  new_w = resize_height;
 	  }
-	  for (int i = 0; i < n; ++i){
-		  box b = boxes[i];
-		  b.x = (b.x - (netw - new_w) / 2. / netw) / ((float)new_w / netw);
-		  b.y = (b.y - (neth - new_h) / 2. / neth) / ((float)new_h / neth);
-		  b.w *= (float)netw / new_w;
-		  b.h *= (float)neth / new_h;
-		  if (!relative){
-			  b.x *= w;
-			  b.w *= w;
-			  b.y *= h;
-			  b.h *= h;
-		  }
-		  boxes[i] = b;
+	  float* box_data = result[0]->mutable_cpu_data();
+	  int box_size = result[0]->count();
+	  for (int i = 0; i < box_size; i+=4){
+		  box_data[i] = (box_data[i] - (orig_image.cols - new_w) / 2. / orig_image.cols) / ((float)new_w / orig_image.cols);
+		  box_data[i + 1] = (box_data[i + 1] - (orig_image.rows - new_h) / 2. / orig_image.rows) / ((float)new_h / orig_image.rows);
+		  box_data[i + 2] *= (float)orig_image.cols / new_w;
+		  box_data[i + 3] *= (float)orig_image.rows / new_h;
 	  }
   }
+  
 #endif
   draw_detections(FLAGS_input, 13 * 13 * 5, 0.2, result[0]->cpu_data(), result[1]->cpu_data(), 20);
 //dump the output
+  /*
   const float* box_data = result[0]->cpu_data();
   int box_size = result[0]->count();
   FILE * pFile;
@@ -571,7 +597,7 @@ int test_detection() {
   int prob_size = result[1]->count();
   pFile = fopen("prob_caffe.bin", "wb");
   fwrite(prob_data, sizeof(float), prob_size, pFile);
-  fclose(pFile);
+  fclose(pFile);*/
   std::cout << "OK" << std::endl;
 #endif
   return 0;
