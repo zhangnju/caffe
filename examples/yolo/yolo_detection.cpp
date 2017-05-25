@@ -314,9 +314,10 @@ void draw_detections(std::string input, int num, float thresh, const float *boxe
 	cv::Mat orig_image = cv::imread(input, CV_LOAD_IMAGE_COLOR);
 
 	for (int i = 0; i < num; ++i){
-		int class_ = max_index(&probs[i], classes);
-		float prob = probs[i*20+class_];
+		int class_ = max_index(&probs[i*(classes + 1)], classes);
+		float prob = probs[i*(classes+1)+class_];
 		if (prob > thresh){
+		/*
 			int width = orig_image.rows * .012;
 			printf("%s: %.0f%%\n", labels[class_], prob * 100);
 			int offset = class_ * 123457 % classes;
@@ -330,6 +331,7 @@ void draw_detections(std::string input, int num, float thresh, const float *boxe
 			rgb[0] = red;
 			rgb[1] = green;
 			rgb[2] = blue;
+			*/
 			const float* b = &boxes[i*4];
 
 			int left = (*b - *(b+2) / 2.)*orig_image.cols;
@@ -342,8 +344,9 @@ void draw_detections(std::string input, int num, float thresh, const float *boxe
 			if (top < 0) top = 0;
 			if (bot > orig_image.rows - 1) bot = orig_image.rows - 1;
 
-			draw_box_width(orig_image, left, top, right, bot, width, red, green, blue);
-			cv::putText(orig_image, labels[class_], cv::Point(left, top), cv::FONT_HERSHEY_PLAIN, 1.0, CV_RGB(0, 255, 0), 2.0);
+			//draw_box_width(orig_image, left, top, right, bot, width, red, green, blue);
+			cv::rectangle(orig_image, cv::Point(left, top), cv::Point(right, bot), cv::Scalar(0, 0, 0));
+			cv::putText(orig_image, labels[class_], cv::Point(left, top), cv::FONT_HERSHEY_PLAIN, 1.0, CV_RGB(0, 0, 255), 2.0);
 #if 0
 			cv::Mat* alphabets = NULL;
 			load_alphabet(alphabets);
@@ -495,10 +498,10 @@ int test_detection() {
   resize_image(FLAGS_input, resize_img_cv, resize_width, resize_height);
   {
 	  float* data = new float[resize_height*resize_width * 3];
-	  FILE * pFile;
-	  pFile = fopen("resized.bin", "rb");
-	  fread(data, sizeof(float), resize_width*resize_height * 3, pFile);
-	  fclose(pFile);
+	 // FILE * pFile;
+	 // pFile = fopen("resized.bin", "rb");
+	 // fread(data, sizeof(float), resize_width*resize_height * 3, pFile);
+	 // fclose(pFile);
 	  cv::Mat img(resize_height, resize_width, CV_8UC3, cv::Scalar(0, 0, 0));
 	  for (int i = 0; i < resize_height; i++)
 		  for (int j = 0; j < resize_width; j++)
@@ -584,7 +587,7 @@ int test_detection() {
   }
   
 #endif
-  draw_detections(FLAGS_input, 13 * 13 * 5, 0.2, result[0]->cpu_data(), result[1]->cpu_data(), 20);
+  draw_detections(FLAGS_input, 13 * 13 * 5, 0.24, result[0]->cpu_data(), result[1]->cpu_data(), 20);
 //dump the output
   /*
   const float* box_data = result[0]->cpu_data();
