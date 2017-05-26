@@ -32,41 +32,14 @@ DEFINE_string(input, "",
 	"Input image for run dection");
 DEFINE_int32(type, 1,
 	"The type of yolo:V1 is 1, and V2 is 2");
-DEFINE_string(gpu, "",
-    "Optional; run in GPU mode on given device IDs separated by ','."
-    "Use '-gpu all' to run on all available GPUs. The effective training "
-    "batch size is multiplied by the number of devices.");
 DEFINE_string(model, "",
     "The model definition protocol buffer text file.");
 DEFINE_string(weights, "",
     "Optional; the pretrained weights to initialize finetuning, "
     "separated by ','. Cannot be set simultaneously with snapshot.");
-//DEFINE_int32(nms, 0.4,
- //   "The number of iterations to run.");
-
-// Parse GPU ids or use all available devices
-static void get_gpus(vector<int>* gpus) {
-  if (FLAGS_gpu == "all") {
-    int count = 0;
-#ifndef CPU_ONLY
-    CUDA_CHECK(cudaGetDeviceCount(&count));
-#else
-    NO_GPU;
-#endif
-    for (int i = 0; i < count; ++i) {
-      gpus->push_back(i);
-    }
-  } else if (FLAGS_gpu.size()) {
-    vector<string> strings;
-    boost::split(strings, FLAGS_gpu, boost::is_any_of(","));
-    for (int i = 0; i < strings.size(); ++i) {
-      gpus->push_back(boost::lexical_cast<int>(strings[i]));
-    }
-  } else {
-    CHECK_EQ(gpus->size(), 0);
-  }
-}
-
+DEFINE_double(nms, 0.40,
+    "The thresh of nms.");
+#if 0
 template <typename T>
 bool SortScorePairDescend(const pair<float, T>& pair1,
                           const pair<float, T>& pair2) {
@@ -188,152 +161,97 @@ void ComputeAP(const vector<pair<float, int> >& tp, const int num_pos,
     LOG(FATAL) << "Unknown ap_version: " << ap_version;
   }
 }
-int max_index(const float *a, int n)
+#endif
+void preprocess_image(Net<float>& net,std::string& input, int width, int height)
 {
-	if (n <= 0) return -1;
-	int i, max_i = 0;
-	float max_ = a[0];
-	for (i = 1; i < n; ++i){
-		if (a[i] > max_){
-			max_ = a[i];
-			max_i = i;
-		}
-	}
-	return max_i;
-}
-
-void resize_image(std::string& input,std::string& output,int width,int height)
-{
-	cv::Mat resize_image;
+	cv::Mat resized, resized_float;
 	cv::Size size(width, height);
 	cv::Mat orig_image = cv::imread(input, CV_LOAD_IMAGE_COLOR);
-	std::cout << orig_image.channels() << " " << orig_image.elemSize()<< std::endl;
-	if (width!=orig_image.cols || height!=orig_image.rows)
+	if (width != orig_image.cols || height != orig_image.rows)
 	{
-		cv::resize(orig_image, resize_image, size);
-		cv::imwrite(output, resize_image);
+		cv::resize(orig_image, resized, size);
 	}
 	else
 	{
-		output = input;
+		resized = orig_image;
 	}
-		
+	resized.convertTo(resized_float, CV_32FC3);
+
+	Blob<float>* input_layer = net.input_blobs()[0];
+	int num_channels_ = input_layer->channels();
+	CHECK(num_channels_ == 3 || num_channels_ == 1)
+		<< "Input layer should have 1 or 3 channels.";
+	cv::Size input_geometry_ = cv::Size(input_layer->width(), input_layer->height());
+	input_layer->Reshape(1, num_channels_,
+		input_geometry_.height, input_geometry_.width);
+	/* Forward dimension change to all layers. */
+	net.Reshape();
+
+	std::vector<cv::Mat> input_channels;
+	float* input_data = input_layer->mutable_cpu_data();
+	for (int i = 0; i < input_layer->channels(); ++i) {
+		cv::Mat channel(height, width, CV_32FC1, input_data);
+		input_channels.push_back(channel);
+		input_data += input_layer->width() * input_layer->height();
+	}
+
+	cv::split(resized_float, input_channels);
+	for (int i = 0; i < input_layer->channels(); ++i) 
+	   cv::normalize(input_channels[i], input_channels[i], 1.0, 0.0, cv::NORM_MINMAX);
+
+	CHECK(reinterpret_cast<float*>(input_channels.at(0).data)
+		== net.input_blobs()[0]->cpu_data())
+		<< "Input channels are not wrapping the input layer of the network.";
+
 }
-#if 1
+typedef struct{
+	int index_;
+	int class_;
+	float *probs_;
+} sortable_bbox;
+
+int nms_comparator(const void *pa, const void *pb)
+{
+	sortable_bbox a = *(sortable_bbox *)pa;
+	sortable_bbox b = *(sortable_bbox *)pb;
+	float diff = a.probs_[a.index_*(a.class_+1)+a.class_] - b.probs_[b.index_*(b.class_+1)+b.class_];
+	if (diff < 0) return 1;
+	else if (diff > 0) return -1;
+	return 0;
+}
+
+template <typename Dtype>
+Dtype Overlap(Dtype x1, Dtype w1, Dtype x2, Dtype w2) {
+	Dtype left = std::max(x1 - w1 / 2, x2 - w2 / 2);
+	Dtype right = std::min(x1 + w1 / 2, x2 + w2 / 2);
+	return right - left;
+}
+
+template <typename Dtype>
+Dtype Calc_iou(const vector<Dtype>& box, const vector<Dtype>& truth) {
+	Dtype w = Overlap(box[0], box[2], truth[0], truth[2]);
+	Dtype h = Overlap(box[1], box[3], truth[1], truth[3]);
+	if (w < 0 || h < 0) return 0;
+	Dtype inter_area = w * h;
+	Dtype union_area = box[2] * box[3] + truth[2] * truth[3] - inter_area;
+	return inter_area / union_area;
+}
+
 std::string labels[20] = { "aeroplane","bicycle","bird","boat","bottle","bus","car","cat","chair","cow",
                           "diningtable","dog","horse","motorbike","person","pottedplant","sheep","sofa","train","tvmonitor" };
-void load_alphabet(cv::Mat* alphabets)
-{
-	int i, j;
-	const int nsize = 8;
-	if (alphabets==NULL)
-	  alphabets = (cv::Mat*)calloc(nsize*(127-32), sizeof(cv::Mat));
-	for (j = 0; j < nsize; ++j){
-		for (i = 32; i < 127; ++i){
-			char buff[256];
-			sprintf(buff, "data/labels/%d_%d.png", i, j);
-			alphabets[j*(127-32)+i] = cv::imread(buff, CV_LOAD_IMAGE_COLOR);
-		}
-	}
-}
 
-char colors[6][3] = { { 1, 0, 1 }, { 0, 0, 1 }, { 0, 1, 1 }, { 0, 1, 0 }, { 1, 1, 0 }, { 1, 0, 0 } };
-
-char get_color(int c, int x, int max_)
-{
-	float ratio = ((float)x / max_) * 5;
-	int i = floor(ratio);
-	int j = ceil(ratio);
-	ratio -= i;
-	char r = (1 - ratio) * colors[i][c] + ratio*colors[j][c];
-	//printf("%f\n", r);
-	return r;
-}
-
-void draw_box(cv::Mat& a, int x1, int y1, int x2, int y2, uchar r, uchar g, uchar b)
-{
-	//normalize_image(a);
-	int i;
-#if 0
-	for (i = x1; i <= x2; ++i){
-		a.data[i + y1*a.cols + 0 * a.cols*a.rows] = r;
-		a.data[i + y2*a.cols + 0 * a.cols*a.rows] = r;
-
-		a.data[i + y1*a.cols + 1 * a.cols*a.rows] = g;
-		a.data[i + y2*a.cols + 1 * a.cols*a.rows] = g;
-
-		a.data[i + y1*a.cols + 2 * a.cols*a.rows] = b;
-		a.data[i + y2*a.cols + 2 * a.cols*a.rows] = b;
-	}
-	for (i = y1; i <= y2; ++i){
-		a.data[x1 + i*a.cols + 0 * a.cols*a.rows] = r;
-		a.data[x2 + i*a.cols + 0 * a.cols*a.rows] = r;
-
-		a.data[x1 + i*a.cols + 1 * a.cols*a.rows] = g;
-		a.data[x2 + i*a.cols + 1 * a.cols*a.rows] = g;
-
-		a.data[x1 + i*a.cols + 2 * a.cols*a.rows] = b;
-		a.data[x2 + i*a.cols + 2 * a.cols*a.rows] = b;
-	}
-#else
-	for (i = x1; i <= x2; ++i){
-		a.at<cv::Vec3b>(y1, i)[0] = b;
-		a.at<cv::Vec3b>(y2, i)[0] = b;
-
-		a.at<cv::Vec3b>(y1, i)[1] = g;
-		a.at<cv::Vec3b>(y2, i)[1] = g;
-
-		a.at<cv::Vec3b>(y1, i)[2] = r;
-		a.at<cv::Vec3b>(y2, i)[2] = r;
-	}
-	for (i = y1; i <= y2; ++i){
-		a.at<cv::Vec3b>(i, x1)[0] = b;
-		a.at<cv::Vec3b>(i, x2)[0] = b;
-
-		a.at<cv::Vec3b>(i, x1)[1] = g;
-		a.at<cv::Vec3b>(i, x2)[1] = g;
-
-		a.at<cv::Vec3b>(i, x1)[2] = r;
-		a.at<cv::Vec3b>(i, x2)[2] = r;
-	}
-	
-#endif
-}
-
-void draw_box_width(cv::Mat& a, int x1, int y1, int x2, int y2, int w, uchar r, uchar g, uchar b)
-{
-	int i;
-	for (i = 0; i < w; ++i){
-		draw_box(a, x1 + i, y1 + i, x2 - i, y2 - i, r, g, b);
-	}
-}
-
-void draw_detections(std::string input, int num, float thresh, const float *boxes, const float *probs, int classes)
+void draw_detections(std::string input, int num, const float *boxes, const float *probs, int classes)
 {
 	std::string prediction = "prediction.jpg";
 	cv::Mat orig_image = cv::imread(input, CV_LOAD_IMAGE_COLOR);
 
 	for (int i = 0; i < num; ++i){
-		int class_ = max_index(&probs[i*(classes + 1)], classes);
-		float prob = probs[i*(classes+1)+class_];
-		if (prob > thresh){
-		/*
-			int width = orig_image.rows * .012;
-			printf("%s: %.0f%%\n", labels[class_], prob * 100);
-			int offset = class_ * 123457 % classes;
-			uchar red = get_color(2, offset, classes);
-			uchar green = get_color(1, offset, classes);
-			uchar blue = get_color(0, offset, classes);
-			uchar rgb[3];
-
-			//width = prob*20+2;
-
-			rgb[0] = red;
-			rgb[1] = green;
-			rgb[2] = blue;
-			*/
+		int class_id = 0;
+		if (probs[i*(classes + 1) + classes]!=0){
+			for (int j = 0; j < classes; j++)
+				if (probs[i*(classes + 1) + classes] == probs[i*(classes + 1) + j])
+					class_id = j;
 			const float* b = &boxes[i*4];
-
 			int left = (*b - *(b+2) / 2.)*orig_image.cols;
 			int right = (*b + *(b+2) / 2.)*orig_image.cols;
 			int top = (*(b+1) - *(b+3) / 2.)*orig_image.rows;
@@ -344,266 +262,122 @@ void draw_detections(std::string input, int num, float thresh, const float *boxe
 			if (top < 0) top = 0;
 			if (bot > orig_image.rows - 1) bot = orig_image.rows - 1;
 
-			//draw_box_width(orig_image, left, top, right, bot, width, red, green, blue);
 			cv::rectangle(orig_image, cv::Point(left, top), cv::Point(right, bot), cv::Scalar(0, 0, 0));
-			cv::putText(orig_image, labels[class_], cv::Point(left, top), cv::FONT_HERSHEY_PLAIN, 1.0, CV_RGB(0, 0, 255), 2.0);
-#if 0
-			cv::Mat* alphabets = NULL;
-			load_alphabet(alphabets);
-			if (alphabets) {
-				//image label = get_label(alphabet, names[class_], (im.h*.03) / 10);
-				//draw_label(im, top + width, left, label, rgb);
-				//free_image(label);
-			}
-#endif
+			cv::putText(orig_image, labels[class_id], cv::Point(left, top), cv::FONT_HERSHEY_SIMPLEX, 1.0, CV_RGB(0, 0, 255),2.0);
 		}
 	}
 	cv::imwrite(prediction, orig_image);
 }
-#endif 
 // Test: score a model.
-int test_detection() {
-  CHECK_GT(FLAGS_model.size(), 0) << "Need a model definition to score.";
-  CHECK_GT(FLAGS_weights.size(), 0) << "Need model weights to score.";
+int yolo_detection() {
 
-  // Set device id and mode
-  vector<int> gpus;
-  get_gpus(&gpus);
-  if (gpus.size() != 0) {
-    LOG(INFO) << "Use GPU with device ID " << gpus[0];
-#ifndef CPU_ONLY
-    cudaDeviceProp device_prop;
-    cudaGetDeviceProperties(&device_prop, gpus[0]);
-    LOG(INFO) << "GPU device name: " << device_prop.name;
-#endif
-    Caffe::SetDevice(gpus[0]);
-    Caffe::set_mode(Caffe::GPU);
-  } else {
-    LOG(INFO) << "Use CPU.";
-    Caffe::set_mode(Caffe::CPU);
-  }
-  int side ,resize_width,resize_height;
-  if (FLAGS_type == 1)
-  {
-	  side = 7;
-	  resize_width = 448;
-	  resize_height = 448;
-  }
-  else if (FLAGS_type == 2)
-  {
-	  side = 13;
-	  resize_width = 416;
-	  resize_height = 416;
-  }
-  else
-  {
-	  LOG(ERROR) << "Wrong Yolo Version ";
-  }
-  int num_object = 2;
-  int num_class = 20;
+    CHECK_GT(FLAGS_model.size(), 0) << "Need a model definition to score.";
+    CHECK_GT(FLAGS_weights.size(), 0) << "Need model weights to score.";
 
-  caffe::CPUTimer timer;
-  // Instantiate the caffe net.
-  Net<float> caffe_net(FLAGS_model, caffe::TEST);
-  caffe_net.CopyTrainedLayersFrom(FLAGS_weights);
+    #ifdef CPU_ONLY
+       Caffe::set_mode(Caffe::CPU);
+    #else
+       Caffe::set_mode(Caffe::GPU);
+    #endif
 
-#if 0
-  LOG(INFO) << "Running for " << FLAGS_iterations << " iterations.";
-
-  map<int, map<int, vector<pair<float, int> > > > true_poss, false_poss;
-  map<int, map<int, int> > num_gts;
-  vector<int> test_score_output_id;
-  float loss = 0;
-  int out_size(0);
-  map<int, int> skip_idx;
-  double total_time(0.0);
-  timer.Start();
-  for (int i = 0; i < FLAGS_iterations; ++i) {
-    float iter_loss;
-    const vector<Blob<float>*>& result = caffe_net.Forward(&iter_loss);
-    out_size = result.size();
-    LOG(INFO) << "iter_loss: " << iter_loss;
-    loss += iter_loss;
-    for (int j = 0; j < result.size(); ++j) {
-      if (result[j]->count() == 1) {
-        skip_idx[j] = 0;
-        continue;
-      }
-      const float* result_data = result[j]->cpu_data();
-      for (int k = 0; k < result[j]->num(); ++k) {
-        int res_index = k * result[j]->count(1);
-        for (int c = 0; c < num_class; ++c) {
-          if (num_gts[j].find(c) == num_gts[j].end()) {
-            num_gts[j][c] = static_cast<int>(result_data[res_index + c]);
-          } else {
-            num_gts[j][c] += static_cast<int>(result_data[res_index + c]);
-          }
-        }
-        int all_obj_num = side * side * num_object;
-        int obj_index = res_index + num_class;
-        for (int b = 0; b < all_obj_num; ++b) {
-          int label = static_cast<int>(result_data[obj_index + b * 4 + 0]);
-          float score = result_data[obj_index + b * 4 + 1];
-          int tp = static_cast<int>(result_data[obj_index + b * 4 + 2]);
-          int fp = static_cast<int>(result_data[obj_index + b * 4 + 3]);
-          // LOG(INFO) << "tp: " << tp << " fp: " << fp;
-          true_poss[j][label].push_back(std::make_pair(score, tp));
-          false_poss[j][label].push_back(std::make_pair(score, fp));
-        }
-      }
+    int side ,resize_width,resize_height,num_object,num_class;
+    if (FLAGS_type == 1)
+    {
+	   side = 7;
+	   resize_width = 448;
+	   resize_height = 448;
+	   num_object = 2;
     }
-    LOG(INFO) << "Running Iteration " << i;
-  }
-  total_time += timer.MicroSeconds();
-  LOG(INFO) << "Total time: " << total_time / 1000 << " ms.";
-  for (int i = 0; i < out_size; ++i) {
-    if (skip_idx.find(i) != skip_idx.end()) {
-      continue;
+    else if (FLAGS_type == 2)
+    {
+	   side = 13;
+	   resize_width = 416;
+	   resize_height = 416;
+	   num_object = 5;
     }
-    map<int, vector<pair<float, int> > > true_pos = true_poss[i];
-    map<int, vector<pair<float, int> > > false_pos = false_poss[i];
-    map<int, int> num_gt = num_gts[i];
-    map<int, float> APs;
-    float mAP = 0.;
-    for (int j = 0; j < num_class; ++j) {
-      if (!num_gt[j]) {
-        LOG(WARNING) << "Ground trurh label number is 0: " << j;
-        continue;
-      } 
-      if (true_pos.find(j) == true_pos.end()) {
-        LOG(WARNING) << "Missing true_pos for label: " << j;
-        continue;
-      }
-      if (false_pos.find(j) == false_pos.end()) {
-        LOG(WARNING) << "Missing false_pos for label: " << j;
-        continue;
-      }
-      string ap_version = "11point";
-      vector<float> prec, rec;
-      ComputeAP(true_pos[j], num_gt[j], false_pos[j], ap_version, &prec, &rec, &(APs[j]));
-      mAP += APs[j];
+    else
+    {
+	   LOG(ERROR) << "Wrong Yolo Version ";
     }
-    mAP /= num_class;
-    const string& output_name = caffe_net.blob_names()[caffe_net.output_blob_indices()[i]];
-    LOG(INFO) << "    Test net output #" << i << ": " << output_name << " = " << mAP;
-  }
-  loss /= FLAGS_iterations;
-  LOG(INFO) << "Loss: " << loss;
-  LOG(INFO) << "Model: " << FLAGS_weights;
-#else
-  //resize image
-  std::string resize_img_cv = "resized_cv.jpg";
-  std::string resize_img_darknet = "resized_darknet.jpg";
-#ifdef USE_OPENCV
-  resize_image(FLAGS_input, resize_img_cv, resize_width, resize_height);
-  {
-	  float* data = new float[resize_height*resize_width * 3];
-	 // FILE * pFile;
-	 // pFile = fopen("resized.bin", "rb");
-	 // fread(data, sizeof(float), resize_width*resize_height * 3, pFile);
-	 // fclose(pFile);
-	  cv::Mat img(resize_height, resize_width, CV_8UC3, cv::Scalar(0, 0, 0));
-	  for (int i = 0; i < resize_height; i++)
-		  for (int j = 0; j < resize_width; j++)
-			  for (int k = 0; k < 3; k++)
-			  {
-				  img.at<cv::Vec3b>(i, j)[k] = (uchar)(255*data[k*resize_height*resize_width + i*resize_width + j]);//data[c*m.h*m.w + y*m.w + x]
-				 // std::cout << data[k*resize_height*resize_width + i*resize_width + j] << std::endl;
-			  }
-	  delete[]data;
-	  cv::imwrite(resize_img_darknet, img);
-  }
-#endif
-  //get datum
-  caffe::Datum datum;
-#if 1
-  if (!ReadImageToDatum(resize_img_darknet, 1, resize_width, resize_height, &datum)) {
-	  LOG(ERROR) << "Error during file reading";
-  }
-#else
-  std::string binfile = "resized.bin";
-  if (!ReadFileToDatum(binfile, 1, & datum)){
-	  LOG(ERROR) << "Error during file reading";
-  }
-  datum.set_channels(3);
-  datum.set_height(resize_height);
-  datum.set_width(resize_width);
-#endif
+    num_class = 20;
 
-  //get the blob
-  Blob<float>* blob = new Blob<float>(1, datum.channels(), datum.height(), datum.width());
+    
+    // Instantiate the caffe net.
+    Net<float> caffe_net(FLAGS_model, caffe::TEST);
+    caffe_net.CopyTrainedLayersFrom(FLAGS_weights);
 
-  //get the blobproto
-  caffe::BlobProto blob_proto;
-  blob_proto.set_num(1);
-  blob_proto.set_channels(datum.channels());
-  blob_proto.set_height(datum.height());
-  blob_proto.set_width(datum.width());
-  const int data_size = datum.channels() * datum.height() * datum.width();
-  int size_in_datum = std::max<int>(datum.data().size(),
-	  datum.float_data_size());
-  for (int i = 0; i < size_in_datum; ++i) {
-	  blob_proto.add_data(0.);
-  }
-  const string& data = datum.data();
-  if (data.size() != 0) {
-	  for (int i = 0; i < size_in_datum; ++i) {
-		  blob_proto.set_data(i, blob_proto.data(i) + (uint8_t)data[i]);
-	  }
-  }
 
-  //set data into blob
-  blob->FromProto(blob_proto);
+    //preprocess image
+	preprocess_image(caffe_net, FLAGS_input, resize_width, resize_height);
+    
+	const vector<Blob<float>*>& result = caffe_net.Forward();
+    
+    float* box_data = result[0]->mutable_cpu_data();
+    int box_size = result[0]->count();
+    float* prob_data = result[1]->mutable_cpu_data();
 
-  //fill the vector
-  vector<Blob<float>*> bottom;
-  bottom.push_back(blob);
-  float type = 0.0;
-
-  const vector<Blob<float>*>& result = caffe_net.Forward(bottom, &type);
-#if 1
-  if (FLAGS_type == 2)
-  {
+    if (FLAGS_type == 2)
+    {
 	  //add the post-processing for yolo v2
 	  int new_w = 0;
 	  int new_h = 0;
 	  cv::Mat orig_image = cv::imread(FLAGS_input, CV_LOAD_IMAGE_COLOR);
-	  if (((float)resize_width/ side) < ((float)resize_height / side)) {
+	  if (((float)resize_width / orig_image.cols) < ((float)resize_height / orig_image.rows)) {
 		  new_w = resize_width;
-		  new_h = resize_width;
+		  new_h = (orig_image.rows * resize_width) / orig_image.cols;
 	  }
 	  else {
 		  new_h = resize_height;
-		  new_w = resize_height;
+		  new_w = (orig_image.cols * resize_height) / orig_image.rows;
 	  }
-	  float* box_data = result[0]->mutable_cpu_data();
-	  int box_size = result[0]->count();
+	  
 	  for (int i = 0; i < box_size; i+=4){
-		  box_data[i] = (box_data[i] - (orig_image.cols - new_w) / 2. / orig_image.cols) / ((float)new_w / orig_image.cols);
-		  box_data[i + 1] = (box_data[i + 1] - (orig_image.rows - new_h) / 2. / orig_image.rows) / ((float)new_h / orig_image.rows);
-		  box_data[i + 2] *= (float)orig_image.cols / new_w;
-		  box_data[i + 3] *= (float)orig_image.rows / new_h;
+		  box_data[i] = (box_data[i] - (resize_width - new_w) / 2. / resize_width) / ((float)new_w / resize_width);
+		  box_data[i + 1] = (box_data[i + 1] - (resize_height - new_h) / 2. / resize_height) / ((float)new_h / resize_height);
+		  box_data[i + 2] *= (float)resize_width / new_w;
+		  box_data[i + 3] *= (float)resize_height / new_h;
 	  }
-  }
-  
-#endif
-  draw_detections(FLAGS_input, 13 * 13 * 5, 0.24, result[0]->cpu_data(), result[1]->cpu_data(), 20);
-//dump the output
-  /*
-  const float* box_data = result[0]->cpu_data();
-  int box_size = result[0]->count();
-  FILE * pFile;
-  pFile = fopen("box_caffe.bin", "wb");
-  fwrite(box_data, sizeof(float), box_size, pFile);
-  fclose(pFile);
-  const float* prob_data = result[1]->cpu_data();
-  int prob_size = result[1]->count();
-  pFile = fopen("prob_caffe.bin", "wb");
-  fwrite(prob_data, sizeof(float), prob_size, pFile);
-  fclose(pFile);*/
-  std::cout << "OK" << std::endl;
-#endif
-  return 0;
+    }
+ 
+    if (FLAGS_nms)
+    {
+	  //check me, shall we need to improve it?
+	  sortable_bbox *s = (sortable_bbox *)new sortable_bbox[side*side*num_object];
+
+	  for (int i = 0; i < side*side*num_object; ++i){
+		  s[i].index_ = i;
+		  s[i].class_ = num_class;
+		  s[i].probs_ = prob_data;
+	  }
+
+	  qsort(s, side*side*num_object, sizeof(sortable_bbox), nms_comparator);
+	  for (int i = 0; i < side*side*num_object; ++i){
+		  if (prob_data[s[i].index_*(num_class+1)+num_class] == 0) continue;
+		  std::vector<float> a;
+		  a.push_back(box_data[s[i].index_ * 4 + 0]);
+		  a.push_back(box_data[s[i].index_ * 4 + 1]);
+		  a.push_back(box_data[s[i].index_ * 4 + 2]);
+		  a.push_back(box_data[s[i].index_ * 4 + 3]);
+		  for (int j = i + 1; j < side*side*num_object; ++j){
+			  std::vector<float> b;
+			  b.push_back(box_data[s[j].index_ * 4 + 0]);
+			  b.push_back(box_data[s[j].index_ * 4 + 1]);
+			  b.push_back(box_data[s[j].index_ * 4 + 2]);
+			  b.push_back(box_data[s[j].index_ * 4 + 3]);
+			  if (Calc_iou(a, b) > FLAGS_nms){
+				  for (int k = 0; k < num_class + 1; ++k){
+					  prob_data[s[j].index_*(num_class + 1)+k] = 0;
+				  }
+			  }
+		  }
+	  }
+	  delete []s;
+     }
+
+     draw_detections(FLAGS_input, side * side * num_object, result[0]->cpu_data(), result[1]->cpu_data(), num_class);
+     std::cout << "OK" << std::endl;
+
+     return 0;
 }
 
 int main(int argc, char** argv) {
@@ -621,5 +395,5 @@ int main(int argc, char** argv) {
         "    yolo_detection [FLAGS] \n");
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   
-  return test_detection();
+  return yolo_detection();
 }
