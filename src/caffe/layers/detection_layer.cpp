@@ -35,7 +35,8 @@ void DetectionLayer<Dtype>::LayerSetUp(
   batch_ = param.batch();;//check me 
   num_class_ = param.num_class();
   num_object_ = param.num_object();
-
+  thresh_ = param.thresh();
+  sqrt_ = param.sqrt();
   int input_count = bottom[0]->count(1);
   // outputs: classes, iou, coordinates
   int tmp_input_count = width_ * height_ * (num_class_ + (1 + coords_) * num_object_);
@@ -74,7 +75,7 @@ void DetectionLayer<Dtype>::Forward_cpu(
 		  }
 	  }
   }
-
+ 
   for (int i = 0; i < width_*height_; ++i){
 	  int row = i / width_;
 	  int col = i % width_;
@@ -83,10 +84,10 @@ void DetectionLayer<Dtype>::Forward_cpu(
 		  int p_index = width_*height_*num_class_ + i*num_object_ + n;
 		  Dtype scale = input_data[p_index];
 		  int box_index = width_*height_*(num_class_ + num_object_) + (i*num_object_ + n) * 4;
-		  box_data[index] = (input_data[box_index + 0] + col) / width_; //check me ,here need to multiplied by image width
-		  box_data[index+1] = (input_data[box_index + 1] + row) / width_;//check me ,here need to multiplied by image height
-		  box_data[index+2] = pow(input_data[box_index + 2], (sqrt_ ? 2 : 1));
-		  box_data[index+3] = pow(input_data[box_index + 3], (sqrt_ ? 2 : 1));
+		  box_data[index*coords_] = (input_data[box_index + 0] + col) / width_; //check me ,here need to multiplied by image width
+		  box_data[index*coords_ + 1] = (input_data[box_index + 1] + row) / width_;//check me ,here need to multiplied by image height
+		  box_data[index*coords_ + 2] = pow(input_data[box_index + 2], (sqrt_ ? 2 : 1));
+		  box_data[index*coords_ + 3] = pow(input_data[box_index + 3], (sqrt_ ? 2 : 1));
 		  Dtype max_prob = 0;
 		  for (int j = 0; j < num_class_; ++j){
 			  int class_index = i*num_class_;
@@ -97,6 +98,7 @@ void DetectionLayer<Dtype>::Forward_cpu(
 		  prob_data[index*(num_class_ + 1) + num_class_] = max_prob>thresh_ ? max_prob : 0;
 	  }
   }
+  
 }
 
 INSTANTIATE_CLASS(DetectionLayer);

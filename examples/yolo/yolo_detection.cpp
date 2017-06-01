@@ -162,6 +162,7 @@ void ComputeAP(const vector<pair<float, int> >& tp, const int num_pos,
   }
 }
 #endif
+static int num_class = 0;
 void preprocess_image(Net<float>& net,std::string& input, int width, int height)
 {
 	cv::Mat resized, resized_float;
@@ -214,7 +215,7 @@ int nms_comparator(const void *pa, const void *pb)
 {
 	sortable_bbox a = *(sortable_bbox *)pa;
 	sortable_bbox b = *(sortable_bbox *)pb;
-	float diff = a.probs_[a.index_*(a.class_+1)+a.class_] - b.probs_[b.index_*(b.class_+1)+b.class_];
+	float diff = a.probs_[a.index_*(num_class+1)+a.class_] - b.probs_[b.index_*(num_class+1)+b.class_];
 	if (diff < 0) return 1;
 	else if (diff > 0) return -1;
 	return 0;
@@ -246,11 +247,13 @@ void draw_detections(std::string input, int num, const float *boxes, const float
 	cv::Mat orig_image = cv::imread(input, CV_LOAD_IMAGE_COLOR);
 
 	for (int i = 0; i < num; ++i){
-		int class_id = 0;
+		int class_id = -1;
 		if (probs[i*(classes + 1) + classes]!=0){
 			for (int j = 0; j < classes; j++)
 				if (probs[i*(classes + 1) + classes] == probs[i*(classes + 1) + j])
 					class_id = j;
+			if (class_id == -1)
+				continue;
 			const float* b = &boxes[i*4];
 			int left = (*b - *(b+2) / 2.)*orig_image.cols;
 			int right = (*b + *(b+2) / 2.)*orig_image.cols;
@@ -280,7 +283,7 @@ int yolo_detection() {
        Caffe::set_mode(Caffe::GPU);
     #endif
 
-    int side ,resize_width,resize_height,num_object,num_class;
+    int side ,resize_width,resize_height,num_object;
     if (FLAGS_type == 1)
     {
 	   side = 7;
@@ -314,7 +317,8 @@ int yolo_detection() {
     
     float* box_data = result[0]->mutable_cpu_data();
     int box_size = result[0]->count();
-    float* prob_data = result[1]->mutable_cpu_data();
+	float* prob_data = result[1]->mutable_cpu_data();
+	int prob_size = result[1]->count();
 
     if (FLAGS_type == 2)
     {
@@ -337,45 +341,84 @@ int yolo_detection() {
 		  box_data[i + 2] *= (float)resize_width / new_w;
 		  box_data[i + 3] *= (float)resize_height / new_h;
 	  }
-    }
- 
-    if (FLAGS_nms)
-    {
-	  //check me, shall we need to improve it?
-	  sortable_bbox *s = (sortable_bbox *)new sortable_bbox[side*side*num_object];
 
-	  for (int i = 0; i < side*side*num_object; ++i){
-		  s[i].index_ = i;
-		  s[i].class_ = num_class;
-		  s[i].probs_ = prob_data;
-	  }
+	  if (FLAGS_nms)
+	  {
+		  //check me, shall we need to improve it?
+		  sortable_bbox *s = (sortable_bbox *)new sortable_bbox[side*side*num_object];
 
-	  qsort(s, side*side*num_object, sizeof(sortable_bbox), nms_comparator);
-	  for (int i = 0; i < side*side*num_object; ++i){
-		  if (prob_data[s[i].index_*(num_class+1)+num_class] == 0) continue;
-		  std::vector<float> a;
-		  a.push_back(box_data[s[i].index_ * 4 + 0]);
-		  a.push_back(box_data[s[i].index_ * 4 + 1]);
-		  a.push_back(box_data[s[i].index_ * 4 + 2]);
-		  a.push_back(box_data[s[i].index_ * 4 + 3]);
-		  for (int j = i + 1; j < side*side*num_object; ++j){
-			  std::vector<float> b;
-			  b.push_back(box_data[s[j].index_ * 4 + 0]);
-			  b.push_back(box_data[s[j].index_ * 4 + 1]);
-			  b.push_back(box_data[s[j].index_ * 4 + 2]);
-			  b.push_back(box_data[s[j].index_ * 4 + 3]);
-			  if (Calc_iou(a, b) > FLAGS_nms){
-				  for (int k = 0; k < num_class + 1; ++k){
-					  prob_data[s[j].index_*(num_class + 1)+k] = 0;
+		  for (int i = 0; i < side*side*num_object; ++i){
+			  s[i].index_ = i;
+			  s[i].class_ = num_class;
+			  s[i].probs_ = prob_data;
+		  }
+
+		  qsort(s, side*side*num_object, sizeof(sortable_bbox), nms_comparator);
+		  for (int i = 0; i < side*side*num_object; ++i){
+			  if (prob_data[s[i].index_*(num_class + 1) + num_class] == 0) continue;
+			  std::vector<float> a;
+			  a.push_back(box_data[s[i].index_ * 4 + 0]);
+			  a.push_back(box_data[s[i].index_ * 4 + 1]);
+			  a.push_back(box_data[s[i].index_ * 4 + 2]);
+			  a.push_back(box_data[s[i].index_ * 4 + 3]);
+			  for (int j = i + 1; j < side*side*num_object; ++j){
+				  std::vector<float> b;
+				  b.push_back(box_data[s[j].index_ * 4 + 0]);
+				  b.push_back(box_data[s[j].index_ * 4 + 1]);
+				  b.push_back(box_data[s[j].index_ * 4 + 2]);
+				  b.push_back(box_data[s[j].index_ * 4 + 3]);
+				  if (Calc_iou(a, b) > FLAGS_nms){
+					  for (int k = 0; k < num_class + 1; ++k){
+						  prob_data[s[j].index_*(num_class + 1) + k] = 0;
+					  }
 				  }
 			  }
 		  }
+		  delete[]s;
 	  }
-	  delete []s;
-     }
+    }
+	else
+	{
+		if (FLAGS_nms)
+		{
+			sortable_bbox *s = (sortable_bbox *)new sortable_bbox[side*side*num_object];
 
-     draw_detections(FLAGS_input, side * side * num_object, result[0]->cpu_data(), result[1]->cpu_data(), num_class);
-     std::cout << "OK" << std::endl;
+			for (int i = 0; i < side*side*num_object; ++i){
+				s[i].index_ = i;
+				s[i].class_ = 0;
+				s[i].probs_ = prob_data;
+			}
+
+			for (int k = 0; k < num_class; ++k){
+				for (int i = 0; i < side*side*num_object; ++i){
+					s[i].class_ = k;
+				}
+				qsort(s, side*side*num_object, sizeof(sortable_bbox), nms_comparator);
+				for (int i = 0; i < side*side*num_object; ++i){
+					if (prob_data[s[i].index_*(num_class + 1) + k] == 0) continue;
+					std::vector<float> a;
+					a.push_back(box_data[s[i].index_ * 4 + 0]);
+					a.push_back(box_data[s[i].index_ * 4 + 1]);
+					a.push_back(box_data[s[i].index_ * 4 + 2]);
+					a.push_back(box_data[s[i].index_ * 4 + 3]);
+					for (int j = i + 1; j < side*side*num_object; ++j){
+						std::vector<float> b;
+						b.push_back(box_data[s[j].index_ * 4 + 0]);
+						b.push_back(box_data[s[j].index_ * 4 + 1]);
+						b.push_back(box_data[s[j].index_ * 4 + 2]);
+						b.push_back(box_data[s[j].index_ * 4 + 3]);
+						if (Calc_iou(a, b) > FLAGS_nms){
+							prob_data[s[j].index_*(num_class + 1) + k] = 0;
+						}
+					}
+				}
+			}
+			delete[]s;
+		}
+	}
+ 
+    draw_detections(FLAGS_input, side * side * num_object, result[0]->cpu_data(), result[1]->cpu_data(), num_class);
+    std::cout << "OK" << std::endl;
 
      return 0;
 }

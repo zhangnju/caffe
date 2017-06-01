@@ -1110,6 +1110,8 @@ namespace half_float
 		/// \return reference to this half
 		half& operator=(detail::expr rhs) { return *this = static_cast<float>(rhs); }
 
+		half* operator=(half* val){ *this = *val; return this; }
+		
 		/// Arithmetic assignment.
 		/// \tparam T type of concrete half expression
 		/// \param rhs half expression to add
