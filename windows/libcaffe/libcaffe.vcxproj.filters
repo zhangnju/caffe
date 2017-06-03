@@ -108,9 +108,6 @@
     <ClCompile Include="..\..\src\caffe\parallel.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\caffe\data_reader.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\caffe\util\blocking_queue.cpp">
       <Filter>src\util</Filter>
     </ClCompile>
@@ -335,24 +332,6 @@
     </ClCompile>
     <ClCompile Include="..\..\src\caffe\util\signal_handler.cpp">
       <Filter>src\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\caffe\layers\psroi_pooling_layer.cpp">
-      <Filter>src\layers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\caffe\layers\smooth_l1_loss_layer.cpp">
-      <Filter>src\layers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\caffe\layers\softmax_loss_ohem_layer.cpp">
-      <Filter>src\layers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\caffe\layers\box_annotator_ohem_layer.cpp">
-      <Filter>src\layers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\caffe\layers\smooth_L1_loss_ohem_layer.cpp">
-      <Filter>src\layers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\caffe\layers\box_data_layer.cpp">
-      <Filter>src\layers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\caffe\layers\detection_loss_layer.cpp">
       <Filter>src\layers</Filter>
@@ -626,9 +605,6 @@
     <ClInclude Include="..\..\include\caffe\common.hpp">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\caffe\data_reader.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\caffe\data_transformer.hpp">
       <Filter>include</Filter>
     </ClInclude>
@@ -669,15 +645,6 @@
       <Filter>include\layers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\caffe\layers\scale_layer.hpp">
-      <Filter>include\layers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\caffe\layers\psroi_pooling_layer.hpp">
-      <Filter>include\layers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\caffe\layers\smooth_l1_loss_layer.hpp">
-      <Filter>include\layers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\caffe\layers\box_data_layer.hpp">
       <Filter>include\layers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\caffe\layers\detection_loss_layer.hpp">
