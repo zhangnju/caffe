@@ -18,7 +18,9 @@
 #include "caffe/util/db.hpp"
 #include "caffe/util/format.hpp"
 #include "caffe/blob.hpp"
+#include "half.hpp"
 
+using half_float::half;
 using caffe::Blob;
 using caffe::Caffe;
 using caffe::Net;
@@ -163,7 +165,8 @@ void ComputeAP(const vector<pair<float, int> >& tp, const int num_pos,
 }
 #endif
 static int num_class = 0;
-void preprocess_image(Net<float>& net,std::string& input, int width, int height)
+template <typename Dtype>
+void preprocess_image(Net<Dtype>& net,std::string& input, int width, int height)
 {
 	cv::Mat resized, resized_float;
 	cv::Size size(width, height);
@@ -178,7 +181,7 @@ void preprocess_image(Net<float>& net,std::string& input, int width, int height)
 	}
 	resized.convertTo(resized_float, CV_32FC3);
 
-	Blob<float>* input_layer = net.input_blobs()[0];
+	Blob<Dtype>* input_layer = net.input_blobs()[0];
 	int num_channels_ = input_layer->channels();
 	CHECK(num_channels_ == 3 || num_channels_ == 1)
 		<< "Input layer should have 1 or 3 channels.";
@@ -211,6 +214,7 @@ typedef struct{
 	float *probs_;
 } sortable_bbox;
 
+
 int nms_comparator(const void *pa, const void *pb)
 {
 	sortable_bbox a = *(sortable_bbox *)pa;
@@ -241,7 +245,8 @@ Dtype Calc_iou(const vector<Dtype>& box, const vector<Dtype>& truth) {
 std::string labels[20] = { "aeroplane","bicycle","bird","boat","bottle","bus","car","cat","chair","cow",
                           "diningtable","dog","horse","motorbike","person","pottedplant","sheep","sofa","train","tvmonitor" };
 
-void draw_detections(std::string input, int num, const float *boxes, const float *probs, int classes)
+template <typename Dtype>
+void draw_detections(std::string input, int num, const Dtype *boxes, const Dtype *probs, int classes)
 {
 	std::string prediction = "prediction.jpg";
 	cv::Mat orig_image = cv::imread(input, CV_LOAD_IMAGE_COLOR);
@@ -254,7 +259,7 @@ void draw_detections(std::string input, int num, const float *boxes, const float
 					class_id = j;
 			if (class_id == -1)
 				continue;
-			const float* b = &boxes[i*4];
+			const Dtype* b = &boxes[i*4];
 			int left = (*b - *(b+2) / 2.)*orig_image.cols;
 			int right = (*b + *(b+2) / 2.)*orig_image.cols;
 			int top = (*(b+1) - *(b+3) / 2.)*orig_image.rows;
@@ -272,6 +277,7 @@ void draw_detections(std::string input, int num, const float *boxes, const float
 	cv::imwrite(prediction, orig_image);
 }
 // Test: score a model.
+template <typename Dtype>
 int yolo_detection() {
 
     CHECK_GT(FLAGS_model.size(), 0) << "Need a model definition to score.";
@@ -306,7 +312,7 @@ int yolo_detection() {
 
     
     // Instantiate the caffe net.
-    Net<float> caffe_net(FLAGS_model, caffe::TEST);
+    Net<Dtype> caffe_net(FLAGS_model, caffe::TEST);
     caffe_net.CopyTrainedLayersFrom(FLAGS_weights);
 
 
@@ -315,9 +321,9 @@ int yolo_detection() {
     
 	const vector<Blob<float>*>& result = caffe_net.Forward();
     
-    float* box_data = result[0]->mutable_cpu_data();
+    Dtype* box_data = result[0]->mutable_cpu_data();
     int box_size = result[0]->count();
-	float* prob_data = result[1]->mutable_cpu_data();
+	Dtype* prob_data = result[1]->mutable_cpu_data();
 	int prob_size = result[1]->count();
 
     if (FLAGS_type == 2)
@@ -438,5 +444,5 @@ int main(int argc, char** argv) {
         "    yolo_detection [FLAGS] \n");
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   
-  return yolo_detection();
+  return yolo_detection<float>();
 }
