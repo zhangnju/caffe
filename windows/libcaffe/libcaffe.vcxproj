@@ -62,6 +62,7 @@
     <ClCompile>
       <DisableSpecificWarnings>4661;4005;4812;4715;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <AdditionalIncludeDirectories>$(ProjectDir)\..\..\src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
     <Lib>
       <AdditionalOptions>/ignore:4221 %(AdditionalOptions)</AdditionalOptions>
@@ -93,7 +94,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\caffe\blob.cpp" />
     <ClCompile Include="..\..\src\caffe\common.cpp" />
-    <ClCompile Include="..\..\src\caffe\data_reader.cpp" />
     <ClCompile Include="..\..\src\caffe\data_transformer.cpp" />
     <ClCompile Include="..\..\src\caffe\internal_thread.cpp" />
     <ClCompile Include="..\..\src\caffe\layer.cpp" />
@@ -106,7 +106,6 @@
     <ClCompile Include="..\..\src\caffe\layers\batch_reindex_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\bias_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\bnll_layer.cpp" />
-    <ClCompile Include="..\..\src\caffe\layers\box_annotator_ohem_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\concat_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\contrastive_loss_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\conv_layer.cpp" />
@@ -149,7 +148,6 @@
     <ClCompile Include="..\..\src\caffe\layers\pooling_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\power_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\prelu_layer.cpp" />
-    <ClCompile Include="..\..\src\caffe\layers\psroi_pooling_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\reduction_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\relu_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\reshape_layer.cpp" />
@@ -158,11 +156,8 @@
     <ClCompile Include="..\..\src\caffe\layers\sigmoid_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\silence_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\slice_layer.cpp" />
-    <ClCompile Include="..\..\src\caffe\layers\smooth_l1_loss_layer.cpp" />
-    <ClCompile Include="..\..\src\caffe\layers\smooth_L1_loss_ohem_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\softmax_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\softmax_loss_layer.cpp" />
-    <ClCompile Include="..\..\src\caffe\layers\softmax_loss_ohem_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\split_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\spp_layer.cpp" />
     <ClCompile Include="..\..\src\caffe\layers\tanh_layer.cpp" />
@@ -199,7 +194,6 @@
     <ClInclude Include="..\..\include\caffe\blob.hpp" />
     <ClInclude Include="..\..\include\caffe\caffe.hpp" />
     <ClInclude Include="..\..\include\caffe\common.hpp" />
-    <ClInclude Include="..\..\include\caffe\data_reader.hpp" />
     <ClInclude Include="..\..\include\caffe\data_transformer.hpp" />
     <ClInclude Include="..\..\include\caffe\filler.hpp" />
     <ClInclude Include="..\..\include\caffe\internal_thread.hpp" />
@@ -255,7 +249,6 @@
     <ClInclude Include="..\..\include\caffe\layers\pooling_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\power_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\prelu_layer.hpp" />
-    <ClInclude Include="..\..\include\caffe\layers\psroi_pooling_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\python_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\reduction_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\relu_layer.hpp" />
@@ -265,7 +258,6 @@
     <ClInclude Include="..\..\include\caffe\layers\sigmoid_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\silence_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\slice_layer.hpp" />
-    <ClInclude Include="..\..\include\caffe\layers\smooth_l1_loss_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\softmax_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\softmax_loss_layer.hpp" />
     <ClInclude Include="..\..\include\caffe\layers\split_layer.hpp" />
