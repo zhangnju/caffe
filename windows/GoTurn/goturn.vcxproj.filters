@@ -21,13 +21,7 @@
     <ClCompile Include="..\..\examples\goturn\goturn.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\examples\goturn\native\vot.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\examples\goturn\tracker\tracker.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\examples\goturn\network\regressor_train.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\examples\goturn\network\regressor.cpp">
@@ -36,30 +30,18 @@
     <ClCompile Include="..\..\examples\goturn\network\regressor_base.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\examples\goturn\network\regressor_train_base.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\examples\goturn\helper\bounding_box.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\examples\goturn\helper\helper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\examples\goturn\helper\high_res_timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\examples\goturn\helper\image_proc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\examples\goturn\helper\helper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\examples\goturn\native\vot.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\examples\goturn\tracker\tracker.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\examples\goturn\network\regressor_train.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\examples\goturn\network\regressor.h">
@@ -68,19 +50,13 @@
     <ClInclude Include="..\..\examples\goturn\network\regressor_base.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\examples\goturn\network\regressor_train_base.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\examples\goturn\helper\bounding_box.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\examples\goturn\helper\helper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\examples\goturn\helper\high_res_timer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\examples\goturn\helper\image_proc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\examples\goturn\helper\helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -8,21 +8,27 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-class VOTRegion;
-
+typedef struct vot_region {
+	float x;
+	float y;
+	float width;
+	float height;
+} vot_region;
+//#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+//#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 // Represents a bounding box on an image, with some additional functionality.
 class BoundingBox
 {
 public:
   BoundingBox();
   BoundingBox(const std::vector<float>& bounding_box);
-  BoundingBox(const VOTRegion& region);
+  BoundingBox(const vot_region& region);
 
   // Convert bounding box into a vector format.
   void GetVector(std::vector<float>* bounding_box) const;
 
   // Convert bounding box into VOTRegion format.
-  void GetRegion(VOTRegion* region);
+  void GetRegion(vot_region* region);
 
   // Print the bounding box coordinates.
   void Print() const;

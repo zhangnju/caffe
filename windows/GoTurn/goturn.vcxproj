@@ -77,25 +77,17 @@
     <ClCompile Include="..\..\examples\goturn\goturn.cpp" />
     <ClCompile Include="..\..\examples\goturn\helper\bounding_box.cpp" />
     <ClCompile Include="..\..\examples\goturn\helper\helper.cpp" />
-    <ClCompile Include="..\..\examples\goturn\helper\high_res_timer.cpp" />
     <ClCompile Include="..\..\examples\goturn\helper\image_proc.cpp" />
-    <ClCompile Include="..\..\examples\goturn\native\vot.cpp" />
     <ClCompile Include="..\..\examples\goturn\network\regressor.cpp" />
     <ClCompile Include="..\..\examples\goturn\network\regressor_base.cpp" />
-    <ClCompile Include="..\..\examples\goturn\network\regressor_train.cpp" />
-    <ClCompile Include="..\..\examples\goturn\network\regressor_train_base.cpp" />
     <ClCompile Include="..\..\examples\goturn\tracker\tracker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\examples\goturn\helper\bounding_box.h" />
     <ClInclude Include="..\..\examples\goturn\helper\helper.h" />
-    <ClInclude Include="..\..\examples\goturn\helper\high_res_timer.h" />
     <ClInclude Include="..\..\examples\goturn\helper\image_proc.h" />
-    <ClInclude Include="..\..\examples\goturn\native\vot.h" />
     <ClInclude Include="..\..\examples\goturn\network\regressor.h" />
     <ClInclude Include="..\..\examples\goturn\network\regressor_base.h" />
-    <ClInclude Include="..\..\examples\goturn\network\regressor_train.h" />
-    <ClInclude Include="..\..\examples\goturn\network\regressor_train_base.h" />
     <ClInclude Include="..\..\examples\goturn\tracker\tracker.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

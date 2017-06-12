@@ -1,11 +1,11 @@
 #include "bounding_box.h"
-
+#include <algorithm>
 #include <cstdio>
 #include "examples/goturn/helper/image_proc.h"
 
 // Uncomment line below if you want to use rectangles
 #define VOT_RECTANGLE
-#include "examples/goturn/native/vot.h"
+//#include "examples/goturn/native/vot.h"
 
 #include "helper.h"
 
@@ -26,21 +26,21 @@ BoundingBox::BoundingBox() :
 {
 }
 
-BoundingBox::BoundingBox(const VOTRegion& region)
+BoundingBox::BoundingBox(const vot_region& region)
 {
   // VOTRegion is given by left, top, width, and height.
-  x1_ = region.get_x();
-  y1_ = region.get_y();
-  x2_ = region.get_x() + region.get_width();
-  y2_ = region.get_y() + region.get_height();
+  x1_ = region.x;
+  y1_ = region.y;
+  x2_ = region.x + region.width;
+  y2_ = region.y + region.height;
 }
 
-void BoundingBox::GetRegion(VOTRegion* region) {
+void BoundingBox::GetRegion(vot_region* region) {
   // VOTRegion is given by left, top, width, and height.
-  region->set_x(x1_);
-  region->set_y(y1_);
-  region->set_width(get_width());
-  region->set_height(get_height());
+  region->x=x1_;
+  region->y=y1_;
+  region->width=get_width();
+  region->height=get_height();
 }
 
 
@@ -252,7 +252,7 @@ void BoundingBox::Shift(const cv::Mat& image,
     // Sample.
     double width_scale_factor;
     if (shift_motion_model) {
-      width_scale_factor = max(min_scale, min(max_scale, sample_exp_two_sided(lambda_scale_frac)));
+      width_scale_factor = MAX(min_scale, MIN(max_scale, sample_exp_two_sided(lambda_scale_frac)));
     } else {
       const double rand_num = sample_rand_uniform();
       width_scale_factor = rand_num * (max_scale - min_scale) + min_scale;
@@ -260,7 +260,7 @@ void BoundingBox::Shift(const cv::Mat& image,
     // Expand width by scaling factor.
     new_width = width * (1 + width_scale_factor);
     // Ensure that width stays within valid limits.
-    new_width = max(1.0, min(static_cast<double>(image.cols - 1), new_width));
+    new_width = MAX(1.0, MIN(static_cast<double>(image.cols - 1), new_width));
     num_tries_width++;
   }
 
@@ -271,7 +271,7 @@ void BoundingBox::Shift(const cv::Mat& image,
     // Sample.
     double height_scale_factor;
     if (shift_motion_model) {
-      height_scale_factor = max(min_scale, min(max_scale, sample_exp_two_sided(lambda_scale_frac)));
+      height_scale_factor = MAX(min_scale, MIN(max_scale, sample_exp_two_sided(lambda_scale_frac)));
     } else {
       const double rand_num = sample_rand_uniform();
       height_scale_factor = rand_num * (max_scale - min_scale) + min_scale;
@@ -279,7 +279,7 @@ void BoundingBox::Shift(const cv::Mat& image,
     // Expand height by scaling factor.
     new_height = height * (1 + height_scale_factor);
     // Ensure that height stays within valid limits.
-    new_height = max(1.0, min(static_cast<double>(image.rows - 1), new_height));
+    new_height = MAX(1.0, MIN(static_cast<double>(image.rows - 1), new_height));
     num_tries_height++;
   }
 
@@ -304,7 +304,7 @@ void BoundingBox::Shift(const cv::Mat& image,
       new_x_temp = center_x + rand_num * (2 * new_width) - new_width;
     }
     // Make sure that the window stays within the image.
-    new_center_x = min(image.cols - new_width / 2, max(new_width / 2, new_x_temp));
+    new_center_x = MIN(image.cols - new_width / 2, MAX(new_width / 2, new_x_temp));
     first_time_x = false;
     num_tries_x++;
   }
@@ -330,7 +330,7 @@ void BoundingBox::Shift(const cv::Mat& image,
       new_y_temp = center_y + rand_num * (2 * new_height) - new_height;
     }
     // Make sure that the window stays within the image.
-    new_center_y = min(image.rows - new_height / 2, max(new_height / 2, new_y_temp));
+    new_center_y = MIN(image.rows - new_height / 2, MAX(new_height / 2, new_y_temp));
     first_time_y = false;
     num_tries_y++;
   }

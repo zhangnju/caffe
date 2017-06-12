@@ -3,11 +3,12 @@
 
 // Uncomment line below if you want to use rectangles
 #define VOT_RECTANGLE
-#include "examples/goturn/native/vot.h"
+//#include "examples/goturn/native/vot.h"
 
 #include "examples/goturn/tracker/tracker.h"
 #include "examples/goturn/network/regressor_train.h"
-
+#include <iostream>
+using namespace std;
 //using std::string;
 
 int main (int argc, char *argv[]) {
@@ -42,19 +43,19 @@ int main (int argc, char *argv[]) {
   const bool show_intermediate_output = false;
   Tracker tracker(show_intermediate_output);
 
-  VOT vot; // Initialize the communcation
+  //VOT vot; // Initialize the communcation
 
   // Get region and first frame
-  VOTRegion region = vot.region();
-  string path = vot.frame();
+  vot_region region;
+  string path; 
 
   // Load the first frame and use the initialization region to initialize the tracker.
   tracker.Init(path, region, &regressor);
 
   //track
   while (true) {
-      path = vot.frame(); // Get the next frame
-      if (path.empty()) break; // Are we done?
+      //path = vot.frame(); // Get the next frame
+      //if (path.empty()) break; // Are we done?
 
       // Load current image.
       const cv::Mat& image = cv::imread(path);
@@ -65,7 +66,7 @@ int main (int argc, char *argv[]) {
 
       bbox_estimate.GetRegion(&region);
 
-      vot.report(region); // Report the position of the tracker
+      //vot.report(region); // Report the position of the tracker
   }
 
   // Finishing the communication is completed automatically with the destruction

@@ -24,7 +24,7 @@ public:
 
   // Initialize the tracker with the ground-truth bounding box of the first frame.
   // VOTRegion is an object for initializing the tracker when using the VOT Tracking dataset.
-  void Init(const std::string& image_curr_path, const VOTRegion& region,
+  void Init(const std::string& image_curr_path, const vot_region& region,
             RegressorBase* regressor);
 
 private:

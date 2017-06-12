@@ -28,7 +28,7 @@ void Tracker::Init(const cv::Mat& image, const BoundingBox& bbox_gt,
   regressor->Init();
 }
 
-void Tracker::Init(const std::string& image_curr_path, const VOTRegion& region,
+void Tracker::Init(const std::string& image_curr_path, const vot_region& region,
                    RegressorBase* regressor) {
   // Read the given image.
   const cv::Mat& image = cv::imread(image_curr_path);
