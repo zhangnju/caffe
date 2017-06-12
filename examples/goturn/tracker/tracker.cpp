@@ -5,8 +5,8 @@
 #include "examples/goturn/helper/helper.h"
 #include "examples/goturn/helper/bounding_box.h"
 #include "examples/goturn/network/regressor.h"
-#include "examples/goturn/network/regressor_train.h"
-#include "examples/goturn/helper/high_res_timer.h"
+//#include "examples/goturn/network/regressor_train.h"
+//#include "examples/goturn/helper/high_res_timer.h"
 #include "examples/goturn/helper/image_proc.h"
 
 Tracker::Tracker(const bool show_tracking) :

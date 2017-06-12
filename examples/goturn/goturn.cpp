@@ -6,7 +6,7 @@
 //#include "examples/goturn/native/vot.h"
 
 #include "examples/goturn/tracker/tracker.h"
-#include "examples/goturn/network/regressor_train.h"
+//#include "examples/goturn/network/regressor_train.h"
 #include <iostream>
 using namespace std;
 //using std::string;

@@ -6,7 +6,7 @@
 #include <opencv2/highgui/highgui.hpp>
 
 #include "examples/goturn/helper/bounding_box.h"
-#include "examples/goturn/train/example_generator.h"
+//#include "examples/goturn/train/example_generator.h"
 #include "examples/goturn/network/regressor.h"
 
 class Tracker
