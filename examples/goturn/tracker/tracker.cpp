@@ -40,7 +40,7 @@ void Tracker::Init(const std::string& image_curr_path, const vot_region& region,
   Init(image, bbox_gt, regressor);
 }
 
-void Tracker::Track(const cv::Mat& image_curr, RegressorBase* regressor,
+bool Tracker::Track(const cv::Mat& image_curr, RegressorBase* regressor,
                     BoundingBox* bbox_estimate_uncentered) {
   // Get target from previous image.
   cv::Mat target_pad;
@@ -64,7 +64,15 @@ void Tracker::Track(const cv::Mat& image_curr, RegressorBase* regressor,
   bbox_estimate_unscaled.Uncenter(image_curr, search_location, edge_spacing_x, edge_spacing_y, bbox_estimate_uncentered);
 
   if (show_tracking_) {
-    ShowTracking(target_pad, curr_search_region, bbox_estimate);
+   // if(!ShowTracking(target_pad, curr_search_region, bbox_estimate))
+	//	return false;
+	  cv::Mat orig_image = image_curr;
+	  cv::rectangle(orig_image, cv::Point(bbox_estimate_uncentered->x1_, bbox_estimate_uncentered->y1_), cv::Point(bbox_estimate_uncentered->x2_, bbox_estimate_uncentered->y2_), cv::Scalar(0, 255, 255), 1, 8);
+	  cv::namedWindow("goturn", cv::WINDOW_AUTOSIZE);
+	  cv::imshow("goturn", orig_image);
+	  char c = (char)cv::waitKey(0);
+	  if (c == 27)
+		  return false;
   }
 
   // Save the image.
@@ -76,9 +84,10 @@ void Tracker::Track(const cv::Mat& image_curr, RegressorBase* regressor,
   // Save the current estimate as the prior prediction for the next image.
   // TODO - replace with a motion model prediction?
   bbox_curr_prior_tight_ = *bbox_estimate_uncentered;
+  return true;
 }
 
-void Tracker::ShowTracking(const cv::Mat& target_pad, const cv::Mat& curr_search_region, const BoundingBox& bbox_estimate) const {
+bool Tracker::ShowTracking(const cv::Mat& target_pad, const cv::Mat& curr_search_region, const BoundingBox& bbox_estimate) const {
   // Resize the target.
   cv::Mat target_resize;
   cv::resize(target_pad, target_resize, cv::Size(227, 227));
@@ -102,5 +111,9 @@ void Tracker::ShowTracking(const cv::Mat& target_pad, const cv::Mat& curr_search
 
   cv::namedWindow("Estimate", cv::WINDOW_AUTOSIZE );// Create a window for display.
   cv::imshow("Estimate", image_with_box );                   // Show our image inside it.
-  cv::waitKey(0);
+  char c=cv::waitKey(0);
+  if (c == 27)
+	  return false;
+  else
+	  return true;
 }

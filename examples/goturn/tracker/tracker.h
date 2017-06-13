@@ -15,7 +15,7 @@ public:
   Tracker(const bool show_tracking);
 
   // Estimate the location of the target object in the current image.
-  virtual void Track(const cv::Mat& image_curr, RegressorBase* regressor,
+  virtual bool Track(const cv::Mat& image_curr, RegressorBase* regressor,
              BoundingBox* bbox_estimate_uncentered);
 
   // Initialize the tracker with the ground-truth bounding box of the first frame.
@@ -29,7 +29,7 @@ public:
 
 private:
   // Show the tracking output, for debugging.
-  void ShowTracking(const cv::Mat& target_pad, const cv::Mat& curr_search_region, const BoundingBox& bbox_estimate) const;
+  bool ShowTracking(const cv::Mat& target_pad, const cv::Mat& curr_search_region, const BoundingBox& bbox_estimate) const;
 
   // Predicted prior location of the target object in the current image.
   // This should be a tight (high-confidence) prior prediction area.  We will
