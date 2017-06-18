@@ -184,7 +184,7 @@ void RegionLossLayer<Dtype>::Forward_cpu(
 						truth.push_back(label_data[t * 5 + b * 30 * 5+1]);
 						truth.push_back(label_data[t * 5 + b * 30 * 5+2]);
 						truth.push_back(label_data[t * 5 + b * 30 * 5+3]);
-						if (truth[2]==0) break;
+						if (truth[0]==0) break;
 						Dtype iou = Calc_iou(pred, truth);
 						if (iou > best_iou) {
 							best_iou = iou;
@@ -207,7 +207,7 @@ void RegionLossLayer<Dtype>::Forward_cpu(
 			truth.push_back(label_data[t * 5 + b * 30 * 5 + 1]);
 			truth.push_back(label_data[t * 5 + b * 30 * 5 + 2]);
 			truth.push_back(label_data[t * 5 + b * 30 * 5 + 3]);
-			if (truth[2]==0) break;
+			if (truth[0]==0) break;
 			float best_iou = 0;
 			int best_n = 0;
 			int i = truth[0] * width_; //match which i,j
@@ -219,7 +219,7 @@ void RegionLossLayer<Dtype>::Forward_cpu(
 
 			for (int n = 0; n < num_; ++n){ //search 5 anchor in i,j
 				int index = entry_index(b, n*width_*height_ + j*width_ + i, 0);
-				vector<Dtype> pred = get_region_box(input_data, biases_, n, index, i, j, width_, height_,1); 
+				vector<Dtype> pred = get_region_box(input_data, biases_, n, index, i, j, width_, height_,width_*height_); 
 				if (bias_match_){
 					pred[2] = biases_[2 * n] / width_;
 					pred[3] = biases_[2 * n + 1] / height_;
