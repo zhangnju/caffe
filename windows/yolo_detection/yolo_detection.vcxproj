@@ -14,7 +14,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{EEBAAF91-45FC-4D14-87FF-60E85B243E00}</ProjectGuid>
+    <ProjectGuid>{8DF96EF8-09F2-4DC2-93D4-89C4145449B7}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <Platform>x64</Platform>
     <RootNamespace>test_detection</RootNamespace>
